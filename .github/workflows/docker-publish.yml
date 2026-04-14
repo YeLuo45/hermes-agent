@@ -69,7 +69,9 @@ jobs:
           file: Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: nousresearch/hermes-agent:latest
+          tags: |
+            nousresearch/hermes-agent:latest
+            nousresearch/hermes-agent:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -81,6 +83,9 @@ jobs:
           file: Dockerfile
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: nousresearch/hermes-agent:${{ github.event.release.tag_name }}
+          tags: |
+            nousresearch/hermes-agent:latest
+            nousresearch/hermes-agent:${{ github.event.release.tag_name }}
+            nousresearch/hermes-agent:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

@@ -119,29 +119,28 @@ class TestDeduplication:
     def test_first_message_not_duplicate(self):
         from gateway.platforms.dingtalk import DingTalkAdapter
         adapter = DingTalkAdapter(PlatformConfig(enabled=True))
-        assert adapter._dedup.is_duplicate("msg-1") is False
+        assert adapter._is_duplicate("msg-1") is False
 
     def test_second_same_message_is_duplicate(self):
         from gateway.platforms.dingtalk import DingTalkAdapter
         adapter = DingTalkAdapter(PlatformConfig(enabled=True))
-        adapter._dedup.is_duplicate("msg-1")
-        assert adapter._dedup.is_duplicate("msg-1") is True
+        adapter._is_duplicate("msg-1")
+        assert adapter._is_duplicate("msg-1") is True
 
     def test_different_messages_not_duplicate(self):
         from gateway.platforms.dingtalk import DingTalkAdapter
         adapter = DingTalkAdapter(PlatformConfig(enabled=True))
-        adapter._dedup.is_duplicate("msg-1")
-        assert adapter._dedup.is_duplicate("msg-2") is False
+        adapter._is_duplicate("msg-1")
+        assert adapter._is_duplicate("msg-2") is False
 
     def test_cache_cleanup_on_overflow(self):
-        from gateway.platforms.dingtalk import DingTalkAdapter
+        from gateway.platforms.dingtalk import DingTalkAdapter, DEDUP_MAX_SIZE
         adapter = DingTalkAdapter(PlatformConfig(enabled=True))
-        max_size = adapter._dedup._max_size
         # Fill beyond max
-        for i in range(max_size + 10):
-            adapter._dedup.is_duplicate(f"msg-{i}")
+        for i in range(DEDUP_MAX_SIZE + 10):
+            adapter._is_duplicate(f"msg-{i}")
         # Cache should have been pruned
-        assert len(adapter._dedup._seen) <= max_size + 10
+        assert len(adapter._seen_messages) <= DEDUP_MAX_SIZE + 10
 
 
 # ---------------------------------------------------------------------------
@@ -254,13 +253,13 @@ class TestConnect:
         from gateway.platforms.dingtalk import DingTalkAdapter
         adapter = DingTalkAdapter(PlatformConfig(enabled=True))
         adapter._session_webhooks["a"] = "http://x"
-        adapter._dedup._seen["b"] = 1.0
+        adapter._seen_messages["b"] = 1.0
         adapter._http_client = AsyncMock()
         adapter._stream_task = None
 
         await adapter.disconnect()
         assert len(adapter._session_webhooks) == 0
-        assert len(adapter._dedup._seen) == 0
+        assert len(adapter._seen_messages) == 0
         assert adapter._http_client is None
 
 

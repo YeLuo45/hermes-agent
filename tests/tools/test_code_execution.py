@@ -380,7 +380,7 @@ class TestStubSchemaDrift(unittest.TestCase):
     # Parameters that are internal (injected by the handler, not user-facing)
     _INTERNAL_PARAMS = {"task_id", "user_task"}
     # Parameters intentionally blocked in the sandbox
-    _BLOCKED_TERMINAL_PARAMS = {"background", "pty", "notify_on_complete"}
+    _BLOCKED_TERMINAL_PARAMS = {"background", "check_interval", "pty", "notify_on_complete"}
 
     def test_stubs_cover_all_schema_params(self):
         """Every user-facing parameter in the real schema must appear in the
@@ -780,18 +780,14 @@ class TestLoadConfig(unittest.TestCase):
 @unittest.skipIf(sys.platform == "win32", "UDS not available on Windows")
 class TestInterruptHandling(unittest.TestCase):
     def test_interrupt_event_stops_execution(self):
-        """When interrupt is set for the execution thread, execute_code should stop."""
+        """When _interrupt_event is set, execute_code should stop the script."""
         code = "import time; time.sleep(60); print('should not reach')"
-        from tools.interrupt import set_interrupt
-
-        # Capture the main thread ID so we can target the interrupt correctly.
-        # execute_code runs in the current thread; set_interrupt needs its ID.
-        main_tid = threading.current_thread().ident
 
         def set_interrupt_after_delay():
             import time as _t
             _t.sleep(1)
-            set_interrupt(True, main_tid)
+            from tools.terminal_tool import _interrupt_event
+            _interrupt_event.set()
 
         t = threading.Thread(target=set_interrupt_after_delay, daemon=True)
         t.start()
@@ -808,7 +804,8 @@ class TestInterruptHandling(unittest.TestCase):
             self.assertEqual(result["status"], "interrupted")
             self.assertIn("interrupted", result["output"])
         finally:
-            set_interrupt(False, main_tid)
+            from tools.terminal_tool import _interrupt_event
+            _interrupt_event.clear()
             t.join(timeout=3)
 
 

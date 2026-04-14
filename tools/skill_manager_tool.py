@@ -219,15 +219,13 @@ def _validate_file_path(file_path: str) -> Optional[str]:
     Validate a file path for write_file/remove_file.
     Must be under an allowed subdirectory and not escape the skill dir.
     """
-    from tools.path_security import has_traversal_component
-
     if not file_path:
         return "file_path is required."
 
     normalized = Path(file_path)
 
     # Prevent path traversal
-    if has_traversal_component(file_path):
+    if ".." in normalized.parts:
         return "Path traversal ('..') is not allowed."
 
     # Must be under an allowed subdirectory
@@ -244,12 +242,15 @@ def _validate_file_path(file_path: str) -> Optional[str]:
 
 def _resolve_skill_target(skill_dir: Path, file_path: str) -> Tuple[Optional[Path], Optional[str]]:
     """Resolve a supporting-file path and ensure it stays within the skill directory."""
-    from tools.path_security import validate_within_dir
-
     target = skill_dir / file_path
-    error = validate_within_dir(target, skill_dir)
-    if error:
-        return None, error
+    try:
+        resolved = target.resolve(strict=False)
+        skill_dir_resolved = skill_dir.resolve()
+        resolved.relative_to(skill_dir_resolved)
+    except ValueError:
+        return None, "Path escapes skill directory boundary."
+    except OSError as e:
+        return None, f"Invalid file path '{file_path}': {e}"
     return target, None
 
 

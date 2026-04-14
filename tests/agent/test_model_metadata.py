@@ -50,8 +50,7 @@ class TestEstimateTokensRough:
         assert estimate_tokens_rough("a" * 400) == 100
 
     def test_short_text(self):
-        # "hello" = 5 chars → ceil(5/4) = 2
-        assert estimate_tokens_rough("hello") == 2
+        assert estimate_tokens_rough("hello") == 1
 
     def test_proportional(self):
         short = estimate_tokens_rough("hello world")
@@ -69,11 +68,10 @@ class TestEstimateMessagesTokensRough:
         assert estimate_messages_tokens_rough([]) == 0
 
     def test_single_message_concrete_value(self):
-        """Verify against known str(msg) length (ceiling division)."""
+        """Verify against known str(msg) length."""
         msg = {"role": "user", "content": "a" * 400}
         result = estimate_messages_tokens_rough([msg])
-        n = len(str(msg))
-        expected = (n + 3) // 4
+        expected = len(str(msg)) // 4
         assert result == expected
 
     def test_multiple_messages_additive(self):
@@ -82,8 +80,7 @@ class TestEstimateMessagesTokensRough:
             {"role": "assistant", "content": "Hi there, how can I help?"},
         ]
         result = estimate_messages_tokens_rough(msgs)
-        n = sum(len(str(m)) for m in msgs)
-        expected = (n + 3) // 4
+        expected = sum(len(str(m)) for m in msgs) // 4
         assert result == expected
 
     def test_tool_call_message(self):
@@ -92,7 +89,7 @@ class TestEstimateMessagesTokensRough:
                "tool_calls": [{"id": "1", "function": {"name": "terminal", "arguments": "{}"}}]}
         result = estimate_messages_tokens_rough([msg])
         assert result > 0
-        assert result == (len(str(msg)) + 3) // 4
+        assert result == len(str(msg)) // 4
 
     def test_message_with_list_content(self):
         """Vision messages with multimodal content arrays."""
@@ -101,7 +98,7 @@ class TestEstimateMessagesTokensRough:
             {"type": "image_url", "image_url": {"url": "data:image/png;base64,AAAA"}}
         ]}
         result = estimate_messages_tokens_rough([msg])
-        assert result == (len(str(msg)) + 3) // 4
+        assert result == len(str(msg)) // 4
 
 
 # =========================================================================

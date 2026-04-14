@@ -177,8 +177,7 @@ class TestCreateProfile:
         # No error; optional files just not copied
         assert not (profile_dir / "config.yaml").exists()
         assert not (profile_dir / ".env").exists()
-        # SOUL.md is always seeded with the default even when clone source lacks it
-        assert (profile_dir / "SOUL.md").exists()
+        assert not (profile_dir / "SOUL.md").exists()
 
 
 # ===================================================================

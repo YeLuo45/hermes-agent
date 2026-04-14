@@ -59,9 +59,8 @@ class TestCamofoxConfigDefaults:
         browser_cfg = DEFAULT_CONFIG["browser"]
         assert browser_cfg["camofox"]["managed_persistence"] is False
 
-    def test_config_version_matches_current_schema(self):
+    def test_config_version_unchanged(self):
         from hermes_cli.config import DEFAULT_CONFIG
 
-        # The current schema version is tracked globally; unrelated default
-        # options may bump it after browser defaults are added.
-        assert DEFAULT_CONFIG["_config_version"] == 15
+        # managed_persistence is auto-merged by _deep_merge, no version bump needed
+        assert DEFAULT_CONFIG["_config_version"] == 13

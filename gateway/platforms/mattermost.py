@@ -18,11 +18,11 @@ import json
 import logging
 import os
 import re
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from gateway.config import Platform, PlatformConfig
-from gateway.platforms.helpers import MessageDeduplicator
 from gateway.platforms.base import (
     BasePlatformAdapter,
     MessageEvent,
@@ -96,8 +96,10 @@ class MattermostAdapter(BasePlatformAdapter):
             or os.getenv("MATTERMOST_REPLY_MODE", "off")
         ).lower()
 
-        # Dedup cache (prevent reprocessing)
-        self._dedup = MessageDeduplicator()
+        # Dedup cache: post_id → timestamp (prevent reprocessing)
+        self._seen_posts: Dict[str, float] = {}
+        self._SEEN_MAX = 2000
+        self._SEEN_TTL = 300  # 5 minutes
 
     # ------------------------------------------------------------------
     # HTTP helpers
@@ -602,8 +604,10 @@ class MattermostAdapter(BasePlatformAdapter):
         post_id = post.get("id", "")
 
         # Dedup.
-        if self._dedup.is_duplicate(post_id):
+        self._prune_seen()
+        if post_id in self._seen_posts:
             return
+        self._seen_posts[post_id] = time.time()
 
         # Build message event.
         channel_id = post.get("channel_id", "")
@@ -730,4 +734,13 @@ class MattermostAdapter(BasePlatformAdapter):
 
         await self.handle_message(msg_event)
 
-
+    def _prune_seen(self) -> None:
+        """Remove expired entries from the dedup cache."""
+        if len(self._seen_posts) < self._SEEN_MAX:
+            return
+        now = time.time()
+        self._seen_posts = {
+            pid: ts
+            for pid, ts in self._seen_posts.items()
+            if now - ts < self._SEEN_TTL
+        }

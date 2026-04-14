@@ -201,7 +201,6 @@ class WebhookAdapter(BasePlatformAdapter):
             "dingtalk",
             "feishu",
             "wecom",
-            "wecom_callback",
             "weixin",
             "bluebubbles",
         ):

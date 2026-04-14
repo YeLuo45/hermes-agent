@@ -66,8 +66,6 @@ from gateway.platforms.base import (
     cache_audio_from_bytes,
     cache_document_from_bytes,
     SUPPORTED_DOCUMENT_TYPES,
-    utf16_len,
-    _prefix_within_utf16_limit,
 )
 from gateway.platforms.telegram_network import (
     TelegramFallbackTransport,
@@ -149,6 +147,7 @@ class TelegramAdapter(BasePlatformAdapter):
         self._text_batch_split_delay_seconds = float(os.getenv("HERMES_TELEGRAM_TEXT_BATCH_SPLIT_DELAY_SECONDS", "2.0"))
         self._pending_text_batches: Dict[str, MessageEvent] = {}
         self._pending_text_batch_tasks: Dict[str, asyncio.Task] = {}
+        self._token_lock_identity: Optional[str] = None
         self._polling_error_task: Optional[asyncio.Task] = None
         self._polling_conflict_count: int = 0
         self._polling_network_error_count: int = 0
@@ -301,11 +300,9 @@ class TelegramAdapter(BasePlatformAdapter):
 
         # Exhausted retries — fatal
         message = (
-            "Another process is already polling this Telegram bot token "
-            "(possibly OpenClaw or another Hermes instance). "
+            "Another Telegram bot poller is already using this token. "
             "Hermes stopped Telegram polling after %d retries. "
-            "Only one poller can run per token — stop the other process "
-            "and restart with 'hermes start'."
+            "Make sure only one gateway instance is running for this bot token."
             % MAX_CONFLICT_RETRIES
         )
         logger.error("[%s] %s Original error: %s", self.name, message, error)
@@ -500,7 +497,23 @@ class TelegramAdapter(BasePlatformAdapter):
             return False
         
         try:
-            if not self._acquire_platform_lock('telegram-bot-token', self.config.token, 'Telegram bot token'):
+            from gateway.status import acquire_scoped_lock
+
+            self._token_lock_identity = self.config.token
+            acquired, existing = acquire_scoped_lock(
+                "telegram-bot-token",
+                self._token_lock_identity,
+                metadata={"platform": self.platform.value},
+            )
+            if not acquired:
+                owner_pid = existing.get("pid") if isinstance(existing, dict) else None
+                message = (
+                    "Another local Hermes gateway is already using this Telegram bot token"
+                    + (f" (PID {owner_pid})." if owner_pid else ".")
+                    + " Stop the other gateway before starting a second Telegram poller."
+                )
+                logger.error("[%s] %s", self.name, message)
+                self._set_fatal_error("telegram_token_lock", message, retryable=False)
                 return False
 
             # Build the application
@@ -724,7 +737,12 @@ class TelegramAdapter(BasePlatformAdapter):
             return True
             
         except Exception as e:
-            self._release_platform_lock()
+            if self._token_lock_identity:
+                try:
+                    from gateway.status import release_scoped_lock
+                    release_scoped_lock("telegram-bot-token", self._token_lock_identity)
+                except Exception:
+                    pass
             message = f"Telegram startup failed: {e}"
             self._set_fatal_error("telegram_connect_error", message, retryable=True)
             logger.error("[%s] Failed to connect to Telegram: %s", self.name, e, exc_info=True)
@@ -750,7 +768,12 @@ class TelegramAdapter(BasePlatformAdapter):
                 await self._app.shutdown()
             except Exception as e:
                 logger.warning("[%s] Error during Telegram disconnect: %s", self.name, e, exc_info=True)
-        self._release_platform_lock()
+        if self._token_lock_identity:
+            try:
+                from gateway.status import release_scoped_lock
+                release_scoped_lock("telegram-bot-token", self._token_lock_identity)
+            except Exception as e:
+                logger.warning("[%s] Error releasing Telegram token lock: %s", self.name, e, exc_info=True)
 
         for task in self._pending_photo_batch_tasks.values():
             if task and not task.done():
@@ -761,6 +784,7 @@ class TelegramAdapter(BasePlatformAdapter):
         self._mark_disconnected()
         self._app = None
         self._bot = None
+        self._token_lock_identity = None
         logger.info("[%s] Disconnected from Telegram", self.name)
 
     def _should_thread_reply(self, reply_to: Optional[str], chunk_index: int) -> bool:
@@ -801,9 +825,7 @@ class TelegramAdapter(BasePlatformAdapter):
         try:
             # Format and split message if needed
             formatted = self.format_message(content)
-            chunks = self.truncate_message(
-                formatted, self.MAX_MESSAGE_LENGTH, len_fn=utf16_len,
-            )
+            chunks = self.truncate_message(formatted, self.MAX_MESSAGE_LENGTH)
             if len(chunks) > 1:
                 # truncate_message appends a raw " (1/2)" suffix. Escape the
                 # MarkdownV2-special parentheses so Telegram doesn't reject the
@@ -974,9 +996,7 @@ class TelegramAdapter(BasePlatformAdapter):
             # streaming).  Truncate and succeed so the stream consumer can
             # split the overflow into a new message instead of dying.
             if "message_too_long" in err_str or "too long" in err_str:
-                truncated = _prefix_within_utf16_limit(
-                    content, self.MAX_MESSAGE_LENGTH - 20
-                ) + "…"
+                truncated = content[: self.MAX_MESSAGE_LENGTH - 20] + "…"
                 try:
                     await self._bot.edit_message_text(
                         chat_id=int(chat_id),
