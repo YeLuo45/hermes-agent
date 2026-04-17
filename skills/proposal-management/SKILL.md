@@ -175,6 +175,16 @@ When the request is to clone an existing GitHub repo and register it as a propos
 
 7. **Deploy to GitHub Pages** (if the project is a Web app):
    
+   **判断条件**: 只有纯静态前端项目才能部署到 GitHub Pages。如果项目包含后端服务（FastAPI/Express/Flask等），或需要数据库/API 服务器，则不适合 GitHub Pages，直接跳到下一步。
+   
+   常见不能部署的模式：
+   - `backend/` + `frontend/` 双目录结构
+   - `main.py` / `server.py` / `app.py` 等后端入口文件
+   - `requirements.txt` / `package.json` 中有 FastAPI/Express/Flask 等后端框架
+   - 前端 `vite.config.ts` 中有 `/api` proxy 到后端
+   
+   这种情况只需完成 Step 3-6，并在 `proposal-index.md` 的 `Deployment` 字段注明"全栈应用，本地运行"。
+   
    a. **Install dependencies and build**:
       ```bash
       cd ${DEV_OUTPUT_DIR}/<slug>/<web-subproject>/
