@@ -149,6 +149,8 @@ When the request is to clone an existing GitHub repo and register it as a propos
 
 2. **Create project docs** under `${DEV_OUTPUT_DIR}/<slug>/docs/`:
    - `index.md` — local document index
+   - **Check for existing `docs/` first** — some repos already have PRD/tech-solution files (possibly with non-standard names like `2026-04-12-ai-subscription-prd.md`). Preserve existing files and create `index.md` that references them
+   - **Multi-subproject repos** — if the repo contains multiple subprojects (`web/`, `miniapp/`, `pc/`, `android/`), `docs/` is typically at the root level, not inside a specific subproject. Adjust paths accordingly
    - Any existing README.md should be in Chinese; if English, replace content
 
 3. **Update `proposal-index.md`** — add entry with status `delivered` (already built), `in_dev` (if still developing), or `accepted` (if already accepted)
@@ -170,6 +172,66 @@ When the request is to clone an existing GitHub repo and register it as a propos
    PATCH https://api.github.com/repos/YeLuo45/<repo>
    body: { "description": "<Chinese description>", "homepage": "<pages-url>" }
    ```
+
+7. **Deploy to GitHub Pages** (if the project is a Web app):
+   
+   a. **Install dependencies and build**:
+      ```bash
+      cd ${DEV_OUTPUT_DIR}/<slug>/<web-subproject>/
+      npm install
+      npm run build
+      ```
+   
+   b. **Add `base` path to `vite.config.ts`** if deploying to a subpath:
+      ```typescript
+      export default defineConfig({
+        base: '/<slug>/',  // e.g., '/ai-subscription/'
+        // ...other config
+      })
+      ```
+   
+   c. **Create GitHub Actions workflow** at `.github/workflows/deploy.yml`:
+      ```yaml
+      name: Deploy to GitHub Pages
+      on:
+        push:
+          branches: [master]
+      permissions:
+        pages: write
+        id-token: write
+      concurrency:
+        group: "pages"
+        cancel-in-progress: false
+      jobs:
+        deploy:
+          runs-on: ubuntu-latest
+          steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                node-version: '20'
+                cache: 'npm'
+            - run: npm ci
+            - run: npm run build
+            - uses: actions/upload-pages-artifact@v3
+              with:
+                path: ./dist
+            - uses: actions/deploy-pages@v4
+      ```
+   
+   d. **Enable GitHub Pages** via API (set `build_type: workflow`):
+      ```python
+      POST https://api.github.com/repos/YeLuo45/<repo>/pages
+      body: { "build_type": "workflow" }
+      ```
+   
+   e. **Update `proposal-index.md`** with the deployment URL:
+      ```markdown
+      - `Deployment`: https://yeluo45.github.io/<slug>/
+      - `GitHub Repo`: https://github.com/YeLuo45/<repo>
+      ```
+
+8. **IMPORTANT: GitHub token sanitization** — Before committing ANY file that contains the GitHub PAT to git (including skill files, workflow files, scripts), replace the token with `<GITHUB_PAT>` placeholder. GitHub's Secret Scanning blocks API blob creation when PAT pattern is detected in content. Workaround: commit with placeholder via API, never via direct git push of token-containing content.
 
 ### Step 1b: Register New Proposal (from scratch)
 
