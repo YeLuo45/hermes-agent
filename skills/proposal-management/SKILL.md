@@ -126,7 +126,7 @@ When a proposal evolves (e.g., scope change, revision), historical PRD versions 
 ## Workflow
 
 ```
-- [ ] Step 1: Intake – register proposal
+- [ ] Step 1a/1b: Intake – register proposal (from existing codebase OR new)
 - [ ] Step 2: Clarify – up to 3 rounds
 - [ ] Step 3: Route to PM if needed
 - [ ] Step 4: PRD confirmation gate
@@ -137,7 +137,41 @@ When a proposal evolves (e.g., scope change, revision), historical PRD versions 
 - [ ] Step 9: Deliver or revise
 ```
 
-### Step 1: Register Proposal
+### Step 1a: Register from Existing Codebase
+
+When the request is to clone an existing GitHub repo and register it as a proposal (rather than building from scratch):
+
+1. **Clone the repo** to `${DEV_OUTPUT_DIR}/<slug>/`
+   ```bash
+   git clone https://<token>@github.com/<owner>/<repo>.git ${DEV_OUTPUT_DIR}/<slug>/
+   ```
+   Use token `<GITHUB_PAT>` (YeLuo45)
+
+2. **Create project docs** under `${DEV_OUTPUT_DIR}/<slug>/docs/`:
+   - `index.md` — local document index
+   - Any existing README.md should be in Chinese; if English, replace content
+
+3. **Update `proposal-index.md`** — add entry with status `delivered` (already built), `in_dev` (if still developing), or `accepted` (if already accepted)
+
+4. **Update proposals-manager website** via GitHub API:
+   ```python
+   # GET current file + SHA
+   GET https://api.github.com/repos/YeLuo45/proposals-manager/contents/data/proposals.json
+   
+   # PUT new content with SHA (triggers GitHub Actions rebuild)
+   PUT https://api.github.com/repos/YeLuo45/proposals-manager/contents/data/proposals.json
+   body: { "message": "feat: add P-YYYYMMDD-XXX <name>", "content": <base64>, "sha": <sha> }
+   ```
+
+5. **Sync to `proposals-document` repo** — commit updated project docs to `project-docs/<slug>/` in the proposals-document repo
+
+6. **Fix GitHub repo description** to Chinese via PATCH API:
+   ```python
+   PATCH https://api.github.com/repos/YeLuo45/<repo>
+   body: { "description": "<Chinese description>", "homepage": "<pages-url>" }
+   ```
+
+### Step 1b: Register New Proposal (from scratch)
 
 1. Read `${PROPOSALS_ROOT}/proposal-index.md` to determine the next ID
 2. Copy `${TEMPLATES_DIR}/request-intake-template.md` to `${PROPOSALS_ROOT}/P-YYYYMMDD-XXX.md`
