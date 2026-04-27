@@ -42,6 +42,7 @@ import uuid
 
 _IS_WINDOWS = platform.system() == "Windows"
 from tools.environments.local import _find_shell, _sanitize_subprocess_env
+from tools.interrupt import is_interrupted
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional
 
@@ -482,17 +483,28 @@ class ProcessRegistry:
         first_chunk = True
         try:
             while True:
-                chunk = session.process.stdout.read(4096)
-                if not chunk:
+                # Check interrupt BEFORE each blocking read so background
+                # commands can be killed when the agent receives a new message.
+                if is_interrupted():
+                    logger.debug("Reader loop interrupted for session %s", session.id)
+                    self._kill_session_process(session)
                     break
-                if first_chunk:
-                    chunk = self._clean_shell_noise(chunk)
-                    first_chunk = False
-                with session._lock:
-                    session.output_buffer += chunk
-                    if len(session.output_buffer) > session.max_output_chars:
-                        session.output_buffer = session.output_buffer[-session.max_output_chars:]
-                self._check_watch_patterns(session, chunk)
+                # Use select/poll to make read() interruptible (non-blocking).
+                import select as _select
+                r, _, _ = _select.select([session.process.stdout], [], [], 0.5)
+                if r:
+                    chunk = session.process.stdout.read(4096)
+                    if not chunk:
+                        break
+                    if first_chunk:
+                        chunk = self._clean_shell_noise(chunk)
+                        first_chunk = False
+                    with session._lock:
+                        session.output_buffer += chunk
+                        if len(session.output_buffer) > session.max_output_chars:
+                            session.output_buffer = session.output_buffer[-session.max_output_chars:]
+                    self._check_watch_patterns(session, chunk)
+                # No data: loop back and re-check is_interrupted() before retrying.
         except Exception as e:
             logger.debug("Process stdout reader ended: %s", e)
         finally:
@@ -505,6 +517,28 @@ class ProcessRegistry:
             session.exit_code = session.process.returncode
             self._move_to_finished(session)
 
+    def _kill_session_process(self, session: ProcessSession):
+        """Kill a session's process and mark it as interrupted (called from reader thread)."""
+        try:
+            if session._pty:
+                try:
+                    session._pty.terminate(force=True)
+                except Exception:
+                    if session.pid:
+                        os.kill(session.pid, signal.SIGTERM)
+            elif session.process:
+                try:
+                    if _IS_WINDOWS:
+                        session.process.terminate()
+                    else:
+                        os.killpg(os.getpgid(session.process.pid), signal.SIGTERM)
+                except (ProcessLookupError, PermissionError):
+                    session.process.kill()
+            elif session.env_ref and session.pid:
+                session.env_ref.execute(f"kill {session.pid} 2>/dev/null", timeout=5)
+        except Exception as e:
+            logger.debug("Failed to kill session process %s: %s", session.id, e)
+
     def _env_poller_loop(
         self, session: ProcessSession, env: Any, log_path: str, pid_path: str, exit_path: str
     ):
@@ -514,6 +548,14 @@ class ProcessRegistry:
         quoted_exit_path = shlex.quote(exit_path)
         prev_output_len = 0  # track delta for watch pattern scanning
         while not session.exited:
+            # Check interrupt so non-local background commands can be killed on new message.
+            if is_interrupted():
+                logger.debug("Env poller loop interrupted for session %s", session.id)
+                self._kill_session_process(session)
+                session.exited = True
+                session.exit_code = -15  # SIGTERM
+                self._move_to_finished(session)
+                return
             time.sleep(2)  # Poll every 2 seconds
             try:
                 # Read new output from the log file
@@ -563,6 +605,11 @@ class ProcessRegistry:
         pty = session._pty
         try:
             while pty.isalive():
+                # Check interrupt so PTY background commands can be killed on new message.
+                if is_interrupted():
+                    logger.debug("PTY reader loop interrupted for session %s", session.id)
+                    self._kill_session_process(session)
+                    break
                 try:
                     chunk = pty.read(4096)
                     if chunk:
