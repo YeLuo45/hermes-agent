@@ -17,10 +17,10 @@ Current environment configuration (for Hermes):
 |----------|-------|-------------|
 | `PROPOSALS_ROOT` | `~/.hermes/proposals` | Directory holding proposal index and files |
 | `TEMPLATES_DIR` | `~/.hermes/proposals/templates` | Subdirectory for templates |
-| `PM_OUTPUT_DIR` | `~/.hermes/workspace-pm/proposals` | Where PM stores PRD documents |
-| `DEV_OUTPUT_DIR` | `~/.hermes/workspace-dev/proposals` | Where dev stores project artifacts |
-| `COORDINATOR` | `小墨` | Primary coordinating role name |
-| `REQUESTER` | `boss` | Who submits requests |
+| `PM_OUTPUT_DIR` | `~/.hermes/proposals/workspace-pm/proposals` | Where PM stores PRD documents |
+| `DEV_OUTPUT_DIR` | `~/.hermes/proposals/workspace-dev/proposals` | Where dev stores project artifacts |
+| `TEST_OUTPUT_DIR` | `~/.hermes/proposals/workspace-test/proposals` | Where Test Expert stores test cases and results |
+| `RESEARCH_OUTPUT_DIR` | `~/.hermes/proposals/workspace-research/proposals` | Where Research Analyst stores iteration research reports |
 | `PROPOSAL_DOCS_INDEX` | `~/.hermes/proposals/proposal-docs-index.md` | Index of all PRD and technical solution documents |
 
 These values are hardcoded for the current Hermes environment. Do not ask — use them directly.
