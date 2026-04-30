@@ -17,10 +17,12 @@ Current environment configuration (for Hermes):
 |----------|-------|-------------|
 | `PROPOSALS_ROOT` | `~/.hermes/proposals` | Directory holding proposal index and files |
 | `TEMPLATES_DIR` | `~/.hermes/proposals/templates` | Subdirectory for templates |
-| `PM_OUTPUT_DIR` | `~/.hermes/proposals/workspace-pm/proposals` | Where PM stores PRD documents |
-| `DEV_OUTPUT_DIR` | `~/.hermes/proposals/workspace-dev/prj/<项目名>/proposals/<提案ID>` | Where dev stores project artifacts |
-| `TEST_OUTPUT_DIR` | `~/.hermes/proposals/workspace-test/proposals` | Where Test Expert stores test cases and results |
-| `RESEARCH_OUTPUT_DIR` | `~/.hermes/proposals/workspace-research/proposals` | Where Research Analyst stores iteration research reports |
+| `PM_OUTPUT_DIR` | `~/.hermes/proposals/workspace-pm/<项目名>/proposals` | Where PM stores PRD documents |
+| `DEV_OUTPUT_DIR` | `~/.hermes/proposals/workspace-dev/<项目名>/proposals` | Where dev stores project artifacts |
+| `TEST_OUTPUT_DIR` | `~/.hermes/proposals/workspace-test/<项目名>/proposals` | Where Test Expert stores test cases and results |
+| `RESEARCH_OUTPUT_DIR` | `~/.hermes/proposals/workspace-research/<项目名>/proposals` | Where Research Analyst stores iteration research reports |
+| `COORDINATOR` | `小墨` | Primary coordinating role name |
+| `REQUESTER` | `boss` | Who submits requests |
 | `PROPOSAL_DOCS_INDEX` | `~/.hermes/proposals/proposal-docs-index.md` | Index of all PRD and technical solution documents |
 
 These values are hardcoded for the current Hermes environment. Do not ask — use them directly.
@@ -43,10 +45,10 @@ intake → clarifying → prd_pending_confirmation → approved_for_dev → in_d
 
 ## Project Docs Directory Convention
 
-Every project under `${DEV_OUTPUT_DIR}/<项目名>/proposals/<提案ID>/` must have a `docs/` subdirectory containing all proposal-related documentation and a local index. This keeps historical context self-contained within each project.
+Every project under `${DEV_OUTPUT_DIR}/<项目名>/proposals/` must have a `docs/` subdirectory containing all proposal-related documentation and a local index. This keeps historical context self-contained within each project.
 
 ```
-${DEV_OUTPUT_DIR}/<项目名>/proposals/<提案ID>/
+${DEV_OUTPUT_DIR}/<项目名>/proposals/
 ├── docs/
 │   ├── index.md              # Local document index (version history)
 │   ├── proposal.md           # Original proposal intake document
@@ -99,9 +101,9 @@ Maintain a single source of truth at `${PROPOSAL_DOCS_INDEX}` (`~/.hermes/propos
 
 | Document | Path | Version | Updated |
 |----------|------|---------|---------|
-| Proposal | `workspace-dev/prj/<项目名>/proposals/<提案ID>/docs/proposal.md` | - | YYYY-MM-DD |
-| PRD | `workspace-dev/prj/<项目名>/proposals/<提案ID>/docs/prd.v1.md` | v1.0 | YYYY-MM-DD |
-| Technical Solution | `workspace-dev/prj/<项目名>/proposals/<提案ID>/docs/technical-solution.v1.md` | v1.0 | YYYY-MM-DD |
+| Proposal | `workspace-dev/<项目名>/proposals/docs/proposal.md` | - | YYYY-MM-DD |
+| PRD | `workspace-dev/<项目名>/proposals/docs/prd.v1.md` | v1.0 | YYYY-MM-DD |
+| Technical Solution | `workspace-dev/<项目名>/proposals/docs/technical-solution.v1.md` | v1.0 | YYYY-MM-DD |
 
 ---
 
@@ -141,13 +143,13 @@ When a proposal evolves (e.g., scope change, revision), historical PRD versions 
 
 When the request is to clone an existing GitHub repo and register it as a proposal (rather than building from scratch):
 
-1. **Clone the repo** to `${DEV_OUTPUT_DIR}/<项目名>/proposals/<提案ID>/`
+1. **Clone the repo** to `${DEV_OUTPUT_DIR}/<项目名>/proposals/`
    ```bash
-   git clone https://<token>@github.com/<owner>/<repo>.git ${DEV_OUTPUT_DIR}/<项目名>/proposals/<提案ID>/
+   git clone https://<token>@github.com/<owner>/<repo>.git ${DEV_OUTPUT_DIR}/<项目名>/proposals/
    ```
    Use token `ghp_XXXXX` (YeLuo45)
 
-2. **Create project docs** under `${DEV_OUTPUT_DIR}/<项目名>/proposals/<提案ID>/docs/`:
+2. **Create project docs** under `${DEV_OUTPUT_DIR}/<项目名>/proposals/docs/`:
    - `index.md` — local document index
    - Any existing README.md should be in Chinese; if English, replace content
 
@@ -163,7 +165,7 @@ When the request is to clone an existing GitHub repo and register it as a propos
    body: { "message": "feat: add P-YYYYMMDD-XXX <name>", "content": <base64>, "sha": <sha> }
    ```
 
-5. **Sync to `proposals-document` repo** — commit updated project docs to `project-docs/<项目名>/proposals/<提案ID>/` in the proposals-document repo
+5. **Sync to `proposals-document` repo** — commit updated project docs to `project-docs/<项目名>/proposals/` in the proposals-document repo
 
 6. **Fix GitHub repo description** to Chinese via PATCH API:
    ```python
@@ -178,7 +180,7 @@ When the request is to clone an existing GitHub repo and register it as a propos
 3. Fill in Basic Information and Original Request
 4. Add an entry in `proposal-index.md` under Active Proposals with status `intake`
 5. Add an entry in `${PROPOSAL_DOCS_INDEX}` for this proposal
-6. Create `${DEV_OUTPUT_DIR}/<项目名>/proposals/<提案ID>/docs/index.md` with the initial index structure
+6. Create `${DEV_OUTPUT_DIR}/<项目名>/proposals/docs/index.md` with the initial index structure
 
 ### Step 2: Clarify Requirements
 
@@ -191,10 +193,10 @@ When the request is to clone an existing GitHub repo and register it as a propos
 
 If the request is an idea or rough draft, hand off to the PM role for PRD generation.
 
-- PM saves PRD to `${PM_OUTPUT_DIR}/YYYY-MM-DD-<提案ID>-prd.md`
-- PM also copies the PRD as `${DEV_OUTPUT_DIR}/<项目名>/proposals/<提案ID>/docs/prd.v1.md`
+- PM saves PRD to `${PM_OUTPUT_DIR}/<项目名>/YYYY-MM-DD-prd.md`
+- PM also copies the PRD as `${DEV_OUTPUT_DIR}/<项目名>/proposals/docs/prd.v1.md`
 - Update `PRD Path` in `proposal-index.md` once PM delivers
-- Update both `${PROPOSAL_DOCS_INDEX}` and `${DEV_OUTPUT_DIR}/<项目名>/proposals/<提案ID>/docs/index.md` with the new PRD path and version
+- Update both `${PROPOSAL_DOCS_INDEX}` and `${DEV_OUTPUT_DIR}/<项目名>/proposals/docs/index.md` with the new PRD path and version
 
 ### Step 4: PRD Confirmation Gate
 
@@ -238,15 +240,15 @@ Before outputting a technical solution:
 ### Step 6: Technical Solution
 
 - Output the technical solution at `${PROPOSALS_ROOT}/P-YYYYMMDD-XXX-tech-solution.md`
-- Also copy to `${DEV_OUTPUT_DIR}/<项目名>/proposals/<提案ID>/docs/technical-solution.v1.md`
+- Also copy to `${DEV_OUTPUT_DIR}/<项目名>/proposals/docs/technical-solution.v1.md`
 - Update status to `approved_for_dev`
-- Update both `${PROPOSAL_DOCS_INDEX}` and `${DEV_OUTPUT_DIR}/<项目名>/proposals/<提案ID>/docs/index.md` with the new technical solution path and version
+- Update both `${PROPOSAL_DOCS_INDEX}` and `${DEV_OUTPUT_DIR}/<项目名>/proposals/docs/index.md` with the new technical solution path and version
 
 ### Step 7: Hand Off to Dev
 
 - Update status to `in_dev`
-- Dev creates `${DEV_OUTPUT_DIR}/<项目名>/proposals/<提案ID>/docs/` directory if not exists (should already exist from Step 1)
-- Dev saves project output to `${DEV_OUTPUT_DIR}/<项目名>/proposals/<提案ID>/`
+- Dev creates `${DEV_OUTPUT_DIR}/<项目名>/proposals/docs/` directory if not exists (should already exist from Step 1)
+- Dev saves project output to `${DEV_OUTPUT_DIR}/<项目名>/proposals/`
 - The `docs/` directory must contain `index.md`, `proposal.md`, `prd.vN.md` (if exists), and `technical-solution.vN.md`
 - Update `Project Path` in `proposal-index.md`
 
