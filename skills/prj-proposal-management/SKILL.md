@@ -38,9 +38,9 @@ To determine the next ID, read `proposal-index.md` and find the highest `XXX` fo
 Use these exact names across all roles — no custom variants:
 
 ```
-intake → clarifying → prd_pending_confirmation → approved_for_dev → in_dev → in_acceptance → accepted → delivered
-                                                                                ↓
-                                                                          needs_revision → in_dev
+intake → clarifying → prd_pending_confirmation → approved_for_dev → in_tdd_test → in_dev → in_test_acceptance → accepted → deploying → deployed
+                                                                                    ↓                              ↓                              ↓
+                                                                          needs_revision → in_dev              test_failed → in_dev              research_direction_pending → in_prd
 ```
 
 ## Project Docs Directory Convention
@@ -78,12 +78,18 @@ ${DEV_OUTPUT_DIR}/<项目名>/proposals/
 
 | Version | File | Updated | Notes |
 |---------|------|---------|-------|
+
+## Test Cases
+
+| Version | File | Updated | Notes |
+|---------|------|---------|-------|
 ```
 
 **Rules:**
 - `docs/proposal.md` is the single source of truth for the original proposal (never versioned)
 - `prd.md` is a symlink or copy of the current PRD version for convenience
 - `technical-solution.md` is a symlink or copy of the current technical solution for convenience
+- `test-cases.md` is a symlink or copy of the current test cases for convenience
 - Versioned files use `.vN.md` suffix (v1, v2, ...)
 - When a new version is created, update `docs/index.md` with the new entry
 - The index is the single source of truth for version history within the project
@@ -134,8 +140,9 @@ When a proposal evolves (e.g., scope change, revision), historical PRD versions 
 - [ ] Step 4: PRD confirmation gate
 - [ ] Step 5: Technical expectations gate (up to 3 rounds)
 - [ ] Step 6: Output technical solution
-- [ ] Step 7: Hand off to dev
-- [ ] Step 8: Acceptance review
+- [ ] Step 6b: Hand off to Test Expert – generate TDD test cases
+- [ ] Step 7: Hand off to dev (with test cases as reference)
+- [ ] Step 8: Test Expert executes acceptance based on test cases
 - [ ] Step 9: Deliver or revise
 ```
 
@@ -244,22 +251,49 @@ Before outputting a technical solution:
 - Update status to `approved_for_dev`
 - Update both `${PROPOSAL_DOCS_INDEX}` and `${DEV_OUTPUT_DIR}/<项目名>/proposals/docs/index.md` with the new technical solution path and version
 
+### Step 6b: TDD Test Case Generation
+
+After technical solution is output, hand off to Test Expert to generate test cases based on TDD principles:
+
+1. **Coordinator routes to Test Expert** with:
+   - PRD document
+   - Technical solution document
+   - Project context
+
+2. **Test Expert outputs test cases** to `${TEST_OUTPUT_DIR}/<项目名>/YYYY-MM-DD-test-cases.md`
+   - Test cases must be traceable to PRD requirements
+   - Include test case ID, description, preconditions, steps, expected results
+   - Cover happy path and edge cases
+   - Copy test cases to `${DEV_OUTPUT_DIR}/<项目名>/proposals/docs/test-cases.v1.md`
+
+3. **Update tracking:**
+   - Update `Test Cases Path` in `proposal-index.md`
+   - Update both `${PROPOSAL_DOCS_INDEX}` and `${DEV_OUTPUT_DIR}/<项目名>/proposals/docs/index.md`
+   - Update status to `in_tdd_test`
+
+4. **Dev references test cases** during development as acceptance criteria
+
 ### Step 7: Hand Off to Dev
 
 - Update status to `in_dev`
 - Dev creates `${DEV_OUTPUT_DIR}/<项目名>/proposals/docs/` directory if not exists (should already exist from Step 1)
 - Dev saves project output to `${DEV_OUTPUT_DIR}/<项目名>/proposals/`
-- The `docs/` directory must contain `index.md`, `proposal.md`, `prd.vN.md` (if exists), and `technical-solution.vN.md`
+- The `docs/` directory must contain `index.md`, `proposal.md`, `prd.vN.md`, `technical-solution.vN.md`, and `test-cases.vN.md`
 - Update `Project Path` in `proposal-index.md`
 
-### Step 8: Acceptance Review
+### Step 8: Test Expert Acceptance (TDD-based)
 
-When dev reports completion, verify all of the following:
+When dev reports completion, Test Expert executes acceptance based on test cases:
 
 **Requirements consistency:**
 - Matches requester-confirmed requirements
 - Aligns with PRD
 - No scope creep or shortcuts
+
+**Test case execution:**
+- Execute each test case from `test-cases.vN.md`
+- Record pass/fail status for each test case
+- Document any deviations or failures
 
 **Functional verification (hands-on, not screenshots only):**
 - Core functionality works end-to-end
@@ -277,11 +311,28 @@ When dev reports completion, verify all of the following:
 - No UI/logic conflicts
 - Known limitations documented
 
-Update status to `in_acceptance` during review.
+Update status to `in_test_acceptance` during review.
+
+**If all test cases pass**: proceed to Step 9 (Deliver)
+
+**If any test case fails**: update status to `test_failed`, output structured revision notes:
+
+```markdown
+## Test Failure Report
+
+- **Test Case ID**: <id>
+- **Test Description**: <description>
+- **Actual Result**: <what happened>
+- **Expected Result**: <what should happen>
+- **Impact**: <what is affected>
+- **Expected fix**: <how to fix>
+```
+
+Record in `proposal-index.md` Notes field and route back to dev for fix.
 
 ### Step 9: Deliver or Revise
 
-**If accepted**: update status to `accepted` or `delivered`, report to requester
+**If all test cases pass**: update status to `accepted`, proceed to Step 10 (Research Direction)
 
 **If not accepted**: update status to `needs_revision`, output structured revision notes:
 
@@ -294,6 +345,64 @@ Update status to `in_acceptance` during review.
 ```
 
 Record revision notes in `proposal-index.md` Notes field.
+
+### Step 10: Research Direction (Post-Acceptance Iteration Planning)
+
+When acceptance passes (status becomes `accepted` or `delivered`):
+
+1. **Coordinator asks the requester**: "基于本次交付，你希望进入下一个迭代方向探索，还是先维护当前版本？"
+2. **Start a 5-minute confirmation timeout** with cron job
+3. Record the timeout reference in `Research Direction Countdown ID`
+
+**If requester confirms direction**: set `Research Direction` to `confirmed`, proceed to route to Research Analyst
+
+**If timeout**: set `Research Direction` to `timeout-approved`, coordinator decides the next iteration direction autonomously, proceed to route to PM for PRD generation
+
+**After Research Analyst delivers iteration direction report**:
+- Update status to `research_direction_pending`
+- Coordinator hands off to PM with the iteration direction as input
+- PM generates new PRD based on the iteration direction
+- Continue from Step 4 (PRD Confirmation Gate)
+
+### Step 11: Deployment (Post-Acceptance Delivery)
+
+After acceptance (status becomes `accepted`), coordinator handles deployment:
+
+1. **Determine deployment target:**
+   - **GitHub Pages**: If project has `gh-pages` branch support or GitHub Actions workflow
+   - **Cloudflare Pages**: If project is a static site and GitHub Pages not suitable
+   - Use `static-site-deploy` skill for automatic selection
+
+2. **Create deployment branch:**
+   ```bash
+   cd ${DEV_OUTPUT_DIR}/<项目名>/proposals
+   git checkout -b deploy/<项目名>-<YYYYMMDD>
+   ```
+
+3. **Prepare deployment:**
+   - For React/Vite projects: ensure `package-lock.json` is committed, run `npm run build`
+   - For static sites: ensure all built assets are present
+   - Update README.md with deployment URL if needed
+
+4. **Push to remote:**
+   ```bash
+   git add .
+   git commit -m "deploy: <项目名> P-YYYYMMDD-XXX"
+   git push -u origin deploy/<项目名>-<YYYYMMDD>
+   ```
+
+5. **Trigger deployment:**
+   - **GitHub Pages**: Push to `gh-pages` branch directly or trigger GitHub Actions
+   - **Cloudflare Pages**: Use `wrangler pages deploy` or connect via Cloudflare dashboard
+
+6. **Verify deployment:**
+   - Check the deployed URL is accessible
+   - Verify key functionality works on the live site
+
+7. **Update proposal:**
+   - Set status to `deployed`
+   - Record `Deployment URL` and `Deployment Branch` in proposal-index.md
+   - Report final delivery URL to requester
 
 ## Dev Delivery Quality Checks
 
@@ -330,18 +439,32 @@ When adding to `proposal-index.md`:
 - `Proposal ID`: `P-YYYYMMDD-XXX`
 - `Title`: <title>
 - `Owner`: <coordinator>
-- `Current Status`: `intake`
+- `Current Status`: <status>
 - `PRD Path`: (to be filled by PM)
 - `Technical Solution`: (to be filled)
+- `Test Cases Path`: (to be filled by Test Expert)
 - `Project Path`: (to be filled by dev)
 - `Acceptance`: -
 - `PRD Confirmation`: pending
 - `PRD Confirmation Countdown ID`: -
 - `Technical Expectations`: pending
 - `Technical Expectations Countdown ID`: -
+- `Research Direction`: pending
+- `Research Direction Countdown ID`: -
+- `Deployment URL`: (to be filled after deployment)
+- `Deployment Branch`: (to be filled after deployment)
 - `Last Update`: YYYY-MM-DD
 - `Notes`:
 ```
+
+## Important Notes
+
+### Path Discovery
+
+- `~/.hermes/proposals/` is the actual proposals root — not `~/proposals/` (which may be empty or contain unrelated content)
+- The main index file is `proposal-docs-index.md` (not `proposal-index.md`)
+- When cron jobs reference proposals but files aren't found at expected paths, check `~/.hermes/proposals/` first
+- Git commit messages sometimes reference proposal IDs (e.g., `P-20260430-005` in commit message) — use `git log --all --oneline | grep P-YYYYMMDD` to find related commits when navigating
 
 ## Templates
 
