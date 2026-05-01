@@ -404,6 +404,10 @@ After acceptance (status becomes `accepted`), coordinator handles deployment:
    - Record `Deployment URL` and `Deployment Branch` in proposal-index.md
    - Report final delivery URL to requester
 
+8. **Sync to proposals-manager website:**
+   - Use `proposal-sync-website` skill to update `data/proposals.json`
+   - This triggers GitHub Actions rebuild to publish the updated status on https://yeluo45.github.io/proposals-manager/
+
 ## Dev Delivery Quality Checks
 
 Three hard indicators to verify before accepting:
