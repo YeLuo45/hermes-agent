@@ -899,6 +899,43 @@ def _current_custom_base_url() -> str:
     return custom_base or ""
 
 
+def _try_minimax(provider: str = "minimax") -> Tuple[Optional[Any], Optional[str]]:
+    """Try to create a MiniMax vision client via their Anthropic-compatible endpoint.
+
+    provider is either "minimax" (global) or "minimax-cn" (China region).
+    """
+    # Map provider to env var prefixes and base URLs
+    if provider == "minimax-cn":
+        key_env = "MINIMAX_CN_API_KEY"
+        base_url_env = "MINIMAX_CN_BASE_URL"
+        default_base = "https://api.minimaxi.com/anthropic"
+    else:
+        key_env = "MINIMAX_API_KEY"
+        base_url_env = "MINIMAX_BASE_URL"
+        default_base = "https://api.minimax.io/anthropic"
+
+    # Try pool entry first
+    pool_present, entry = _select_pool_entry(provider)
+    if pool_present:
+        if entry is None:
+            return None, None
+        api_key = _pool_runtime_api_key(entry)
+        base_url = _pool_runtime_base_url(entry, default_base) or default_base
+    else:
+        api_key = os.getenv(key_env, "")
+        if not api_key:
+            return None, None
+        base_url = os.getenv(base_url_env, default_base)
+
+    if not api_key:
+        return None, None
+
+    logger.debug("Auxiliary client: MiniMax vision via %s (%s)", base_url, provider)
+    # MiniMax's Anthropic-compatible endpoint uses OpenAI client with Bearer auth
+    model_name = "MiniMax-M2.7"
+    return OpenAI(api_key=api_key, base_url=base_url), model_name
+
+
 def _try_custom_endpoint() -> Tuple[Optional[OpenAI], Optional[str]]:
     runtime = _resolve_custom_runtime()
     if len(runtime) == 2:
@@ -1650,6 +1687,8 @@ def get_async_text_auxiliary_client(task: str = "", *, main_runtime: Optional[Di
 
 
 _VISION_AUTO_PROVIDER_ORDER = (
+    "minimax",
+    "minimax-cn",
     "openrouter",
     "nous",
 )
@@ -1665,6 +1704,8 @@ def _resolve_strict_vision_backend(provider: str) -> Tuple[Optional[Any], Option
         return _try_openrouter()
     if provider == "nous":
         return _try_nous(vision=True)
+    if provider in ("minimax", "minimax-cn"):
+        return _try_minimax(provider)
     if provider == "openai-codex":
         return _try_codex()
     if provider == "anthropic":

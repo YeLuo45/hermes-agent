@@ -471,6 +471,53 @@ async def vision_analyze_tool(
         resolved_url = image_url
         if resolved_url.startswith("file://"):
             resolved_url = resolved_url[len("file://"):]
+
+        # Handle data: URLs specially — they contain base64 image data inline
+        # and should NOT be treated as file paths (avoids "file name too long" error).
+        if resolved_url.startswith("data:"):
+            logger.info("Handling data: URL inline (length=%d)", len(resolved_url))
+            temp_image_path = None  # Will be set from base64 in later step
+            should_cleanup = True
+            detected_mime_type = resolved_url.split(";")[0].replace("data:", "") or "image/png"
+            # Extract base64 data for later processing
+            base64_data = resolved_url.split(",", 1)[1] if "," in resolved_url else ""
+            # Write to temp file so existing downstream code works
+            temp_dir = Path("./temp_vision_images")
+            temp_dir.mkdir(parents=True, exist_ok=True)
+            temp_image_path = temp_dir / f"temp_image_{uuid.uuid4()}.jpg"
+            temp_image_path.write_bytes(base64.b64decode(base64_data + "=="))
+            image_size_bytes = temp_image_path.stat().st_size
+            logger.info("Data URL decoded to temp file (%.1f KB)", image_size_bytes / 1024)
+            # Skip to base64 conversion — don't go through download/remote-URL path
+            image_data_url = resolved_url  # Use original data URL directly
+            data_size_kb = len(image_data_url) / 1024
+            logger.info("Image data URL ready (%.1f KB)", data_size_kb)
+            # Jump directly to the vision API call
+            from agent.auxiliary_client import async_call_llm, extract_content_or_reasoning
+            from tools.debug_helpers import DebugSession
+            from tools.interrupt import is_interrupted
+            if is_interrupted():
+                return tool_error("Interrupted", success=False)
+            model_name = model or "google/gemini-3-flash-preview"
+            messages = [
+                {"role": "user", "content": [
+                    {"type": "image_url", "image_url": {"url": image_data_url}},
+                    {"type": "text", "text": user_prompt}
+                ]}
+            ]
+            try:
+                raw = await async_call_llm(
+                    task="vision",
+                    model=model_name,
+                    messages=messages,
+                    timeout=None,
+                )
+                text = extract_content_or_reasoning(raw)
+                return json.dumps({"success": True, "analysis": text})
+            except Exception as e:
+                logger.error("Vision API call failed: %s", str(e)[:200])
+                return json.dumps({"success": False, "error": str(e)})
+
         local_path = Path(os.path.expanduser(resolved_url))
         if local_path.is_file():
             # Local file path (e.g. from platform image cache) -- skip download
