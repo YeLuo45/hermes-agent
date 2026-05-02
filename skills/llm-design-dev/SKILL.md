@@ -1,5 +1,5 @@
 ---
-name: openmaic-llm-design
+name: llm-design-dev
 description: OpenMAIC 多智能体交互课堂的大模型设计能力 — Provider架构、LLM调用层、LangGraph编排、JSON流式解析、动作系统。用于复刻该能力到其他项目。
 category: software-development
 ---
@@ -539,3 +539,260 @@ pnpm add partial-json jsonrepair
 - **PBL 场景**：Project-Based Learning 的 Issue Board 模式
 - **Quiz 模式**：自动出题、自动评分
 - **课堂录制/回放**：Playback Engine
+
+---
+
+## 十一、UI/UX 设计系统
+
+> 来源：PRJ-20260424-001 OpenMAIC 前端组件分析
+> 用途：复刻多智能体交互课堂的 UI 交互模式
+
+### 11.1 设计哲学
+
+| 原则 | 实现 |
+|------|------|
+| **AI 优先** | UI 为 AI Agent 流式输出服务，消息逐字显现而非整块渲染 |
+| **沉浸感** | 最小化 UI 干扰，最大化内容呈现；演讲模式隐藏侧边栏 |
+| **双模态** | Playback（回放预生成内容）vs Autonomous（实时生成讨论）两种交互模式 |
+| **可访问性** | 完整 dark mode，backdrop-blur 毛玻璃效果，无障碍色对比 |
+| **流畅反馈** | 所有状态变化有动效，无白屏跳转，异步操作有明确 loading 态 |
+
+### 11.2 布局架构
+
+```
+Stage（主容器）
+├── Header（顶栏：标题、设置、主题切换）
+├── SceneSidebar（场景导航侧边栏，可折叠）
+├── CanvasArea（中央内容区）
+│   ├── SlideRenderer（幻灯片 + spotlight/laser 效果）
+│   ├── Whiteboard（白板浮层，spring 动画弹出）
+│   └── Roundtable（底部讨论区）
+├── ChatArea（右侧面板，drag-to-resize）
+│   ├── Tabs: Lecture Notes | Chat Sessions
+│   └── InlineActionTag（气泡内动作徽章）
+└── AgentBar（智能体选择顶栏）
+```
+
+**尺寸规范**：
+- ChatArea 默认宽度：340px，最小 240px，最大 560px
+- Whiteboard 弹出：`inset: 4`（全屏减 4 单位），圆角 3xl
+- 白板画布：1000×562px（Agent 坐标计算基于此尺寸）
+- 场景列表项间距：mb-3（12px）
+
+### 11.3 核心组件
+
+#### ChatArea（`components/chat/chat-area.tsx`）
+
+右侧面板，含两个 Tab：
+
+| Tab | 内容 | 空状态 |
+|-----|------|--------|
+| Lecture Notes | 从 scenes 实时推导的课堂笔记，自动跟随当前 scene | BookOpen 图标 + "开始上课后笔记会出现在这里" |
+| Chat Sessions | 讨论/QA 会话列表，可展开折叠 | MessageSquare 图标 + "还没有对话" |
+
+**交互细节**：
+- Drag handle 在左侧边缘，hover 时显示紫色竖线
+- 折叠按钮在 Tab header 右侧
+- Chat Tab 有活跃会话时在 Lecture Tab 上显示 amber 脉冲点
+
+#### MessageBubble（`components/chat/chat-session.tsx`）
+
+消息气泡，根据角色变色：
+
+| 角色 | 背景 | 边框 | 文本色 |
+|------|------|------|--------|
+| User | `from-purple-600 to-purple-700` 渐变 | ring-purple-500/20 | 白色 |
+| Teacher | `bg-white dark:bg-gray-800` | `border-gray-100 dark:border-gray-700` | `text-gray-700 dark:text-gray-200` |
+| 其他 Agent | `bg-indigo-50 dark:bg-indigo-900/20` | `border-indigo-100/50` | `text-indigo-900 dark:text-indigo-200` |
+
+**流式状态**：
+- Agent 开始说话但无内容时：显示 3 个脉冲点（200ms 间隔递增动画）
+- 流式输出中：文字末尾有 `animate-pulse` 光标
+- 被中断：红色方点替代光标
+
+**Inline Action Badge**：在文字流式完成前不显示，StreamBuffer 到达该动作时才插入。
+
+#### InlineActionTag（`components/chat/inline-action-tag.tsx`）
+
+气泡内的动作徽章，固定宽度 pill：
+
+| 动作族 | 配色 |
+|--------|------|
+| Spotlight/Play | Yellow 系：`bg-yellow-50`，`border-yellow-300/40` |
+| Laser | Red 系：`bg-red-50`，`border-red-300/40` |
+| Whiteboard 动作 | Violet 系：`bg-violet-50`，带 `PenLine` 小芯片作为 left accent |
+| Discussion | Amber 系：`bg-amber-50`，`border-amber-300/40` |
+
+状态：`running` 或 `input-available` 时整体 `animate-pulse`，Icon 替换为 `Loader2`。
+
+#### SessionList（`components/chat/session-list.tsx`）
+
+会话折叠面板：
+- Header：左侧彩色圆点（紫色=lecture，蓝色=qa，琥珀色=discussion），右侧消息计数 + ChevronDown
+- Active 状态：`border-purple-200`，背景 `bg-purple-50/30`，绿色脉冲点
+- 展开动画：`height: 0 → 'auto'`，duration 0.2s，`easeInOut`
+- 讨论/QA 结束后：显示红色 "结束讨论" / "结束问答" 按钮（pulse 红点）
+
+#### LectureNotesView（`components/chat/lecture-notes-view.tsx`）
+
+左侧 Lecture Notes 面板：
+- 按 scene 分组，每组有 timeline dot（当前 scene 为紫色发光）
+- 当前 scene：`bg-purple-50/80`，带 `ring-purple-200/60`，右上角 "当前" 标签
+- 自动滚动到当前 scene（`scrollIntoView: smooth, block: center`）
+- Spotlight/Laser/Discussion 动作以图标形式内联在文字行内
+
+#### AgentBar（`components/agent/agent-bar.tsx`）
+
+顶栏智能体选择：
+- 每个 Agent 显示为 VoicePill（头像 + 声音名称 + 下拉箭头）
+- 点击打开 Popover：按 Provider 分组，每组显示 voice 列表
+- 选中 voice 高亮（`bg-primary/10`），右侧预览按钮（Speaker 图标）
+- 预览播放：`fetch('/api/generate/tts')`，生成 base64 audio 播放
+
+#### AgentConfigPanel（`components/agent/agent-config-panel.tsx`）
+
+全屏智能体管理：
+- 卡片列表：Avatar（带 color border） + name + role + priority badge
+- 每个卡片展示：能力描述（line-clamp-2）、可用动作（前 3 个 + `+N`）
+- 支持新建/编辑/删除操作
+
+#### Whiteboard（`components/whiteboard/index.tsx`）
+
+浮层白板，Spring 动画：
+```typescript
+// 弹出
+{ type: 'spring', stiffness: 120, damping: 18, mass: 1.2 }
+// 退出
+{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }
+```
+
+Header 工具栏：ResetView（RotateCcw）、Clear（Eraser + 抖动动画）、History（快照计数 badge）、Minimize（Minimize2）。
+
+Clear 动画：`base 380ms + 55ms * elementCount`，上限 1400ms（cascade 效果）。
+
+背景：`radial-gradient` 点阵（24px 间隔）。
+
+#### Roundtable（`components/roundtable/index.tsx`）
+
+底部讨论区，承载实时语音交互：
+- Agent 头像（圆形，带声音波形动画指示器）
+- 输入框（支持麦克风录音 / 键盘输入）
+- 播放控制：Play/Pause、Speed（0.75x/1x/1.25x/1.5x）、Stop
+- 讨论触发卡片：ProactiveCard 弹出确认
+
+### 11.4 视觉语言
+
+**色彩系统（CSS Variables）**：
+```css
+/* Light mode */
+--primary: #722ed1;           /* 紫主色 */
+--background: oklch(1 0 0);
+--foreground: oklch(0.145 0 0);
+
+/* Dark mode */
+--primary: #8b47ea;          /* 亮紫 */
+--background: oklch(0.145 0 0);
+--foreground: oklch(0.985 0 0);
+```
+
+**主题色用途**：
+- Purple：主操作、活跃状态、教师消息、Whiteboard
+- Indigo：Assistant 消息
+- Amber：Discussion 讨论、Warning
+- Red：Stop 按钮、Laser 效果
+- Yellow：Spotlight 效果
+
+**字体**：`--font-sans: var(--font-sans)`（Next.js Geist Sans）
+
+**图标库**：Lucide React，stroke-width 统一（大部分用默认 2，ActionTag 用 2.5）
+
+**组件库**：shadcn/ui + `tw-animate-css`
+
+### 11.5 动效设计
+
+| 元素 | 动画 | 参数 |
+|------|------|------|
+| Whiteboard 弹出 | spring | stiffness: 120, damping: 18, mass: 1.2 |
+| Whiteboard 退出 | ease | duration: 0.5, ease: [0.4, 0, 0.2, 1] |
+| Active 气泡 glow | box-shadow loop | duration: 2.5s, repeat: Infinity |
+| 消息条出现 | fade + y | opacity 0→1, y: 4→0, duration: 0.3s |
+| 会话展开/折叠 | height | 0→auto, duration: 0.2s, easeInOut |
+| Loading 点 | pulse | 200ms stagger（3 个点） |
+| Chat Tab amber 点 | ping + opacity | absolute, inline-flex |
+| 停止讨论按钮 | ping | absolute, inline-flex, red |
+| Clear 抖动 | rotate | [-15, 15, -10, 10, 0], duration: 0.5s |
+
+**滚动策略**：
+- 新消息到达：`scrollIntoView: { behavior: 'smooth', block: 'end' }`
+- 文本增量：`requestAnimationFrame` 节流，检测 `isAtBottom` 决定是否跟随
+- 用户上滑查看历史：取消 auto-scroll，`isAtBottomRef` 控制
+
+### 11.6 SSE 事件 → UI 状态映射
+
+| SSE 事件 | UI 状态 | 视觉表现 |
+|----------|---------|----------|
+| `thinking` | 思考中 | 消息区 3 个灰色脉冲点 |
+| `agent_start` | 新气泡开始 | 气泡出现（fade+y），带 Agent 颜色 |
+| `text_delta` | 流式输出 | 文字逐字追加，末尾 pulse 光标 |
+| `action` | 动作徽章 | InlineActionTag 插入文字流末端 |
+| `agent_end` | 气泡完成 | 光标消失，`metadata.interrupted` 时显示红方点 |
+| `cue_user` | 等待输入 | Roundtable 激活输入框 |
+| `done` | 会话结束 | 停止按钮消失，显示结束分割线 |
+| `error` | 出错 | Toast 提示 + 状态重置 |
+
+### 11.7 主题系统
+
+**实现方式**：CSS Custom Properties + `.dark` class。
+
+```css
+/* Tailwind 主题配置 */
+@custom-variant dark (&:is(.dark *));
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --primary: #8b47ea;
+}
+```
+
+**Dark mode 切换**：`.dark` class 挂在 `<html>` 上，通过 `next-themes` 的 `ThemeProvider` 控制。
+
+**透明/毛玻璃**：
+- ChatArea：`bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl`
+- Whiteboard：`bg-white/95 dark:bg-gray-800/95 backdrop-blur-2xl`
+- 卡片：`bg-white/50 dark:bg-gray-800/50`
+
+### 11.8 组件状态规范
+
+| 组件 | 状态 |
+|------|------|
+| Button | default / hover（`hover:bg-gray-200/90`）/ active（`scale-90`）/ disabled / loading |
+| VoicePill | default / hover / disabled（`opacity-30`，VolumeX 图标）|
+| SessionCard | idle（灰边框）/ active（紫边框+pulse 点）/ expanded |
+| MessageBubble | streaming（光标）/ interrupted（红方点）/ complete（无指示器）|
+| Whiteboard | closed（不渲染）/ open（spring 动画）/ clearing（cascade 动画）|
+| Input | default / focus（`ring-purple-500`）/ error（红边框）/ disabled |
+
+### 11.9 复刻 UI 清单
+
+| 优先级 | 文件 | 说明 |
+|--------|------|------|
+| P0 | `components/chat/chat-area.tsx` | 右侧面板 + Tabs + drag-resize |
+| P0 | `components/chat/chat-session.tsx` | 气泡渲染 + 角色配色 + 流式光标 |
+| P0 | `components/chat/inline-action-tag.tsx` | 动作徽章 + 5 套配色 |
+| P0 | `components/chat/session-list.tsx` | 会话折叠 + 状态图标 |
+| P0 | `components/chat/lecture-notes-view.tsx` | 课堂笔记 + 自动滚动 |
+| P1 | `components/whiteboard/index.tsx` | 白板浮层 + spring 动画 |
+| P1 | `components/roundtable/index.tsx` | 讨论区 + 播放控制 |
+| P1 | `components/agent/agent-bar.tsx` | Agent 选择 + Voice Popover |
+| P1 | `app/globals.css` | 主题变量 + dark mode |
+| P2 | `components/agent/agent-config-panel.tsx` | Agent 管理面板 |
+
+### 11.10 UI 关键陷阱
+
+1. **StreamBuffer 控制显示时机**：Action Badge 不能在 StreamBuffer 到达前渲染，需要在 `onTextReveal` 回调中插入
+2. **auto-scroll 防打扰**：用户上滑查看历史时设置 `isAtBottomRef = false`，新增消息不触发滚动
+3. **sceneEpoch 丢弃过期回调**：场景切换时 bump epoch，任何基于旧 scene 的 SSE 回调必须被忽略
+4. **manualStop 双 flash 防护**：通过 `manualStopRef` 标记防止 `onDiscussionEnd` 和 `doSessionCleanup` 重复触发结束动画
+5. **Whiteboard 互斥**：Whiteboard 打开时 Slide Canvas 隐藏；Slide 效果需 `wb_close` 后才能使用
+6. **dark mode 下 backdrop-blur**：部分 Android 浏览器 backdrop-blur 性能差，需降级处理
