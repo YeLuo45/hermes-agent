@@ -217,7 +217,7 @@ When PM returns the PRD:
 
 **If timeout**: set `PRD Confirmation` to `timeout-approved`, record in `Timeout Resolution`
 
-#### Timeout Implementation by Platform
+**Timeout Implementation by Platform**
 
 | Platform | Method |
 |----------|--------|
@@ -225,6 +225,16 @@ When PM returns the PRD:
 | OpenClaw | `cron` with `schedule.kind="at"`, `atMs=<now+300000>`, `payload.kind="systemEvent"` |
 | Cursor | Use the countdown-manager skill if available, or track manually with timestamps |
 | Other | Record a deadline timestamp and check on next interaction |
+
+**Output Format for Timeout Default-Through**
+
+When stating a timeout will automatically pass, you MUST output the exact datetime in the message, using the format `YYYY-MM-DD HH:mm:ss`. Calculate it from `now + timeout_duration`. Example:
+
+```
+PRD 确认超时时间：2026-04-22 14:30:00（5分钟后默认通过）
+```
+
+This provides clear visibility into when the auto-approval will trigger.
 
 **Hermes cron timeout example:**
 ```python
@@ -465,10 +475,32 @@ When adding to `proposal-index.md`:
 
 ### Path Discovery
 
+#### Hermes Environment
 - `~/.hermes/proposals/` is the actual proposals root — not `~/proposals/` (which may be empty or contain unrelated content)
 - The main index file is `proposal-docs-index.md` (not `proposal-index.md`)
-- When cron jobs reference proposals but files aren't found at expected paths, check `~/.hermes/proposals/` first
+
+#### OpenClaw Environment (Windows/WSL)
+- Proposals root: `~/.openclaw/workspace/proposals/` (not `~/.hermes/proposals/`)
+- The main index file is `proposal-index.md` (not `proposal-docs-index.md`)
+- PM output: `~/.openclaw/workspace-pm/proposals/`
+- Dev output: `~/.openclaw/workspace-dev/proposals/`
+- **WSL path translation**: WSL home `/root/` maps to Windows `C:\Users\<windows_username>\`
+  - Example: `~/.openclaw/workspace/proposals/proposal-index.md` from WSL = `C:\Users\<username>\.openclaw\workspace\proposals\proposal-index.md` in Windows
+  - Use `/mnt/c/Users/<username>/` prefix when accessing Windows filesystem from WSL
+  - Windows username can be found via `ls /mnt/c/Users/`
+
+#### General
+- When cron jobs reference proposals but files aren't found at expected paths, check both `~/.hermes/proposals/` and `~/.openclaw/workspace/proposals/`
 - Git commit messages sometimes reference proposal IDs (e.g., `P-20260430-005` in commit message) — use `git log --all --oneline | grep P-YYYYMMDD` to find related commits when navigating
+- **WSL filesystem search performance**: `find` commands on `/mnt/c/` with large directories can hang (>60s timeout). Use targeted `ls` + `grep` via `search_files` tool instead of broad `find` to avoid hangs.
+
+### Handling Duplicate Cron Timeout Events
+
+When processing a cron timeout event:
+1. **Always check proposal-index.md first** to see if the state was already updated by a previous identical cron event
+2. If `PRD Confirmation` or `Technical Expectations` already shows `timeout-approved` or the expected next state, do NOT update again — just record the duplicate timestamp
+3. The same cron event can arrive multiple times (e.g., system event redelivery); idempotency is critical
+4. Before making any state changes, verify the current state matches what the cron expects to change
 
 ## Templates
 
