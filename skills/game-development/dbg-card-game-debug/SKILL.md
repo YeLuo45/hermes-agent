@@ -186,3 +186,15 @@ f2e1/f2c1/f2c2/f2c3/f2b1 - 有入边 → 未解锁
 4. **第二层解锁节点为空**: `returnToMap()` 不初始化新楼层，`checkEnemyDeath()` 楼层切换时必须初始化解锁节点。
 5. **函数命名差异**: dev agent 可能使用不同函数名（如 `showRewardSelection` vs `showRewardScreen`），需要实际测试而非只看预期名称。
 6. **遗物UI显示缺失**: V6 dev agent 实现了核心功能但 `relic-display` DOM 未添加，需要检查 `document.getElementById('relic-icons')` 验证。
+
+## 关键教训（2026-05-03 新增）
+
+**V5 致命错误**：V5 (P-20260502-012) 的 `showRewardScreen` 和 `selectReward` commit 了，提案标记为 "accepted"，但**从未集成到游戏流程**。验收时只检查了 git log，没有验证实际行为。
+
+**后果**：DBG 核心功能"牌组构建"在 V5 到 V12 期间完全不可用，副标题"构建你的牌组"是空头承诺。直到 V13 才发现问题。
+
+**正确做法**：
+1. 每次 subagent 交付后，必须在浏览器中**实际触发核心功能**验证
+2. 不能只看 `grep` 代码存在就标记 accepted
+3. DBG 核心路径：start game → battle → defeat enemy → **奖励选择界面必须弹出**
+4. 验证命令：`browser_console` 中检查 `typeof showCardReward` 和 `gameState.deck.length` 变化

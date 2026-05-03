@@ -144,8 +144,11 @@ concurrency:
   group: "pages"
   cancel-in-progress: false
 jobs:
-  deploy:
+  build-and-deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: https://username.github.io/repo/
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -627,6 +630,7 @@ If `~/.git-credentials` is empty (0 bytes) but you need to deploy via GitHub API
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
+| `actions/deploy-pages@v4` fails with "Missing environment" | The action requires `environment` block in the job definition | Add to job: `environment: { name: github-pages, url: https://username.github.io/repo/ }` |
 | Push rejected with "workflow" error | Token missing `workflow` scope | Add scope to token or use token with full `repo` scope |
 | 403 on API call | Token lacks `repo` or `pages` permission | Check token scopes at GitHub Settings → Developer settings |
 | Pages status "errored" | Workflow failed or missing workflow | Check Actions tab, ensure workflow file is in the correct branch |
