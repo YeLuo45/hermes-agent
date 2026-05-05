@@ -74,6 +74,28 @@ Branch naming conventions:
 - `docs/description` — documentation
 - `ci/description` — CI/CD changes
 
+## 2b. Pre-commit Token Safety Check
+
+**CRITICAL: Never commit GitHub tokens (prefix `ghp_`) to any repository.**
+
+GitHub Push Protection scans every commit for `ghp_` prefix patterns — even if the token appears masked (e.g., `***`) in the commit message display, the underlying bytes still contain the full token and will be blocked.
+
+```bash
+# Check for any token-like strings before committing
+if grep -rE 'ghp_[a-zA-Z0-9]{30,}' . --exclude-dir=.git 2>/dev/null; then
+    echo "ERROR: GitHub token found in working directory!"
+    exit 1
+fi
+
+# Safe placeholder: always use $GITHUB_TOKEN in documentation/examples
+# Never use *** or actual tokens — those still trigger Push Protection
+```
+
+If you accidentally committed a token:
+1. Use `git filter-repo` or BFG Repo-Cleaner to rewrite history
+2. Immediately rotate the token in GitHub Settings
+3. Force push the cleaned history
+
 ## 2. Making Commits
 
 Use the agent's file tools (`write_file`, `patch`) to make changes, then commit:
