@@ -24,22 +24,29 @@ Current environment configuration (for Hermes):
 | `COORDINATOR` | `小墨` | Primary coordinating role name |
 | `REQUESTER` | `boss` | Who submits requests |
 | `PROPOSAL_DOCS_INDEX` | `~/.hermes/proposals/proposal-docs-index.md` | Index of all PRD and technical solution documents |
-| `SYNC_SCRIPT` | `~/.hermes/scripts/sync-proposals-to-website.py` | 单向同步脚本（proposal-index.md → GitHub data/proposals.json） |
-| `GITHUB_TOKEN` | `$GITHUB_TOKEN` | YeLuo45 GitHub PAT |
+| `SYNC_SCRIPT` | `~/.hermes/scripts/sync-proposals-to-website.py` | 单向同步脚本，CSV模式：`--csv-only` 从 GitHub 生成 CSV |
 
 ### Index Files
 
-| File | Purpose |
-|------|---------|
-| `~/.hermes/proposals/proposal-index.md` | 提案生命周期索引（提案ID→状态→文档路径） |
-| `~/.hermes/proposals/project-index.md` | 项目索引（Project → Proposal 1:N 映射关系） |
-| `~/.hermes/proposals/proposal-docs-index.md` | 提案文档索引（提案→PRD/技术方案/测试用例路径） |
+**重要变更：2026-05-05 起，数据以 CSV 为结构化存储，markdown 仅作轻量快速索引。**
+
+| File | Purpose | Format |
+|------|---------|--------|
+| `~/.hermes/proposals/proposals.csv` | 提案主数据（20字段，含 project_id 外键） | CSV |
+| `~/.hermes/proposals/projects.csv` | 项目主数据（id, name, proposal_count, git_repo） | CSV |
+| `~/.hermes/proposals/project_proposal_mapping.csv` | Project↔Proposal 映射关系 | CSV |
+| `~/.hermes/proposals/proposal-index.md` | 提案快速索引（仅含统计摘要，指向 CSV） | Markdown |
+| `~/.hermes/proposals/project-index.md` | 项目快速索引（仅含清单和统计，指向 CSV） | Markdown |
+
+**CSV 字段说明：**
+- `proposals.csv`：`id`, `title`, `status`, `project_id`, `project_name`, `git_repo`, `deployment_url`, `prd_confirmation`, `acceptance`, `last_update` 等 20 字段
+- `projects.csv`：`id`, `name`, `proposal_count`, `git_repo`
+- `project_proposal_mapping.csv`：`project_id`, `project_name`, `project_git_repo`, `proposal_id`, `proposal_name`, `proposal_status`
 
 **关系：**
 - `project-index.md` 和 `proposal-index.md` 共同构成完整的"项目-提案"双视角索引
-- `proposal-index.md` 记录提案生命周期状态
-- `project-index.md` 记录项目与提案的 1:N 归属关系（语义：Project 是代码仓/产品线，Proposal 是具体开发任务）
-- `project-index.md` 由小墨维护，每次项目变更后更新；不参与 GitHub 同步，是本地只读参考
+- **两者均为轻量索引，实际数据以 CSV 为准**
+- CSV 由 `sync-proposals-to-website.py --csv-only` 从 GitHub 生成
 
 ### Website & GitHub
 
@@ -49,19 +56,26 @@ Current environment configuration (for Hermes):
 | Website title | 项目提案管理（不是"提案管理"） |
 | GitHub repo | YeLuo45/prj-proposals-manager (master 分支存源码，gh-pages 分支存部署) |
 | Data file | `data/proposals.json` on master (v2 格式: `{version: 2, projects: [{name, url, gitRepo, proposals: [...]}]}`) |
-| Website source | `/tmp/prj-proposals-manager/` (本地开发目录) |
-| Bundled static data | `public/data/proposals.json` (build 时打包，用于 gh-pages fallback) |
-| GitHub Token | `$GITHUB_TOKEN` |
+| GitHub Token | `$GITHUB_TOKEN`（环境变量，placeholder 用于文档；实际 token 在 `~/.hermes/tools/github-token.txt`）|
 
 ### Sync Strategy
 
+**数据流向：** GitHub `data/proposals.json` → `sync-proposals-to-website.py --csv-only` → `proposals.csv` / `projects.csv`
+
+**本地 CSV 生成（常用）：**
+```bash
+GITHUB_TOKEN=$GITHUB_TOKEN \
+  python3 ~/.hermes/scripts/sync-proposals-to-website.py --csv-only
+```
+
+**写入 GitHub（通过 API）：** 网站保存时直接 PUT 到 GitHub master 的 `data/proposals.json`。GitHub Actions 检测到 master push 后自动 rebuild gh-pages。
+
 **三层数据读取优先级：**
-1. GitHub API (实时，有 token 时优先)
-2. 同源静态文件 `/data/proposals.json` (CSP 阻塞跨域时的 fallback)
+1. GitHub API（实时，有 token 时优先）
+2. 本地 CSV（`~/.hermes/proposals/proposals.csv`，无网络时使用）
+3. 同源静态文件 `public/data/proposals.json`（CSP 阻塞跨域时的 fallback）
 
 **URL 路径拼接注意：** GitHub Pages 部署在子路径 `/prj-proposals-manager/`（末尾有斜杠）。`window.location.pathname` 返回 `/prj-proposals-manager/`。拼接 data URL 时必须 strip 末尾斜杠：`pathname.replace(/\/$/, '')` 得到 `/prj-proposals-manager`，再拼 `${origin}${basePath}/data/proposals.json` = `https://yeluo45.github.io/prj-proposals-manager/data/proposals.json`。
-
-**同步到 GitHub：** 网站保存时直接 PUT 到 GitHub master 的 `data/proposals.json`。GitHub Actions 检测到 master push 后自动 rebuild gh-pages。静态打包文件需在每次 build 前从 GitHub API 下载最新版本保持同步。
 
 These values are hardcoded for the current Hermes environment. Do not ask — use them directly.
 
@@ -69,7 +83,7 @@ These values are hardcoded for the current Hermes environment. Do not ask — us
 
 `P-YYYYMMDD-XXX` — zero-padded sequential number per day.
 
-To determine the next ID, read `proposal-index.md` and find the highest `XXX` for today's date.
+To determine the next ID, read `proposals.csv` and find the highest `XXX` for today's date.
 
 ## Proposal States
 
