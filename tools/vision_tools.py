@@ -493,8 +493,7 @@ async def vision_analyze_tool(
             data_size_kb = len(image_data_url) / 1024
             logger.info("Image data URL ready (%.1f KB)", data_size_kb)
             # Jump directly to the vision API call
-            from agent.auxiliary_client import async_call_llm, extract_content_or_reasoning
-            from tools.debug_helpers import DebugSession
+            # async_call_llm already imported at module level (line 40)
             from tools.interrupt import is_interrupted
             if is_interrupted():
                 return tool_error("Interrupted", success=False)
