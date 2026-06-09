@@ -22,3 +22,18 @@ Some skills are useful but not broadly needed by every user:
 
 By keeping them optional, we keep the default skill set lean while still
 providing curated, tested, official skills for users who want them.
+
+## Curated bundles
+
+Some optional-skill directories are **bundles** — curated subsets of a larger
+upstream project, cherry-picked for Hermes operators. Bundles are listed with
+the same `official` source label so `hermes skills browse --source official`
+picks them up, and each sub-skill is independently installable.
+
+| Bundle | Source | Skills | Why a bundle |
+|---|---|---|---|
+| [`ecc/`](ecc/README.md) | [YeLuo45/ECC](https://github.com/YeLuo45/ECC) | 8 (verification-loop, tdd-workflow, security-review, search-first, hermes-imports, mcp-server-patterns, agent-introspection-debugging, iterative-retrieval) | ECC ships 200+ skills and 4,000 files; bundle keeps the universal top 8 (~60KB) |
+
+For the full ECC suite (~35 MB), clone the upstream repo and use the
+`hermes-imports` skill (or the [HERMES-OPENCLAW-MIGRATION guide](https://github.com/YeLuo45/ECC/blob/main/docs/HERMES-OPENCLAW-MIGRATION.md))
+to bring in additional skills as needed.

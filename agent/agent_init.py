@@ -1398,6 +1398,7 @@ def init_agent(
     # 4. Fall back to built-in ContextCompressor
     _selected_engine = None
     _engine_name = "compressor"  # default
+    _ctx_cfg: dict = {}  # may be replaced in the try below
     try:
         _ctx_cfg = _agent_cfg.get("context", {}) if isinstance(_agent_cfg, dict) else {}
         _engine_name = _ctx_cfg.get("engine", "compressor") or "compressor"
@@ -1449,6 +1450,17 @@ def init_agent(
             provider=agent.provider,
             api_mode=agent.api_mode,
         )
+        # Apply engine-specific config from ``context.engine_plugins.<name>.*``
+        # if the engine exposes an ``apply_config()`` hook. This is opt-in
+        # per engine — built-in ``ContextCompressor`` doesn't define it and
+        # the call is silently skipped via ``getattr`` + try/except.
+        try:
+            _ep_cfg_root = _ctx_cfg.get("engine_plugins", {}) if isinstance(_ctx_cfg, dict) else {}
+            _ep_cfg = _ep_cfg_root.get(_engine_name, {}) if isinstance(_ep_cfg_root, dict) else {}
+            if _ep_cfg and hasattr(agent.context_compressor, "apply_config"):
+                agent.context_compressor.apply_config(_ep_cfg)
+        except Exception as _ep_err:
+            _ra().logger.debug("engine_plugins config for '%s' skipped: %s", _engine_name, _ep_err)
         if not agent.quiet_mode:
             _ra().logger.info("Using context engine: %s", _selected_engine.name)
     else:

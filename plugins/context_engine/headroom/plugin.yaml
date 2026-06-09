@@ -1,0 +1,31 @@
+name: headroom
+description: >-
+  Headroom: deterministic, multi-algorithm context compression (60-95% token
+  reduction) with cache-aligned prefix optimization. No LLM call required
+  for compression — uses SmartCrusher (JSON), CodeCompressor (AST), and
+  Kompress-base (text) plus CacheAligner for KV-cache hit stabilization.
+  Optional CCR (Compress-Compress-Retrieve) for reversible compression.
+version: 0.1.0
+homepage: https://github.com/chopratejas/headroom
+license: Apache-2.0
+requires:
+  python: ">=3.10"
+  packages:
+    - "headroom-ai>=0.7"
+  optional_packages:
+    - name: "headroom-ai[ml]"
+      description: "Enables Kompress-base ML text compressor (HF model download)"
+    - name: "headroom-ai[memory]"
+      description: "Enables cross-agent shared memory store"
+    - name: "headroom-ai[relevance]"
+      description: "Enables LearnedSparse retrieval backend for CCR"
+author: "Hermes Agent integration by 小墨 (boss-requested)"
+config_keys:
+  - context.engine_plugins.headroom.target_ratio
+  - context.engine_plugins.headroom.protect_recent
+  - context.engine_plugins.headroom.kompress_model
+  - context.engine_plugins.headroom.compress_user_messages
+  - context.engine_plugins.headroom.compress_system_messages
+  - context.engine_plugins.headroom.min_tokens_to_compress
+  - context.engine_plugins.headroom.ccr_enabled
+  - context.engine_plugins.headroom.quiet_mode

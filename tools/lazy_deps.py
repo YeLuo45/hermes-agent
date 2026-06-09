@@ -175,6 +175,11 @@ LAZY_DEPS: dict[str, tuple[str, ...]] = {
         "uvicorn[standard]==0.41.0",
         "starlette==1.0.1",  # CVE-2026-48710 (BadHost) — keep lazy-install in sync with pyproject [web]
     ),
+    # markitdown: convert PDF/Word/Excel/PPT/Image/Audio/HTML/ZIP/EPUB/YouTube
+    # → Markdown. Fills the gap left by read_file's binary block.
+    # Pinned to a floor (>=0.1) to match PyPI's current stable; the
+    # `markitdown[all]` extra pulls in PDF/OCR/audio deps lazily.
+    "convert.markitdown": ("markitdown[all]>=0.1",),
 }
 
 

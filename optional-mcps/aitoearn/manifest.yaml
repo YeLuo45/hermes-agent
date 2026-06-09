@@ -1,0 +1,74 @@
+# Nous-approved MCP catalog entry.
+# Presence in this directory = approval. Merged via PR review.
+#
+# Schema version 1.
+manifest_version: 1
+
+name: aitoearn
+description: "AiToEarn content marketing agent — monetize, publish to 14+ social platforms (Douyin/Xiaohongshu/YouTube/TikTok/...), engage, and create content from any MCP-capable assistant. SaaS MCP, no local install."
+source: https://github.com/yikart/AiToEarn
+
+# Remote Streamable HTTP MCP server hosted by AiToEarn.
+# Two regions — switch URL via AITO_EARN_BASE_URL env var at install time.
+#   - International (default): https://aitoearn.ai/api/unified/mcp
+#   - China:                   https://aitoearn.cn/api/unified/mcp
+# Hermes' MCP client supports Streamable HTTP + `headers` for auth; we use
+# the http transport with `x-api-key` header injection from .env.
+transport:
+  type: http
+  url: https://aitoearn.ai/api/unified/mcp
+
+# api_key auth: we prompt for the API key at install time and write it
+# to ~/.hermes/.env as AITO_EARN_API_KEY. The MCP client then resolves
+# ${AITO_EARN_API_KEY} at request time from os.environ.
+#
+# We also expose AITO_EARN_BASE_URL as a non-secret env var so users
+# can switch between international and China regions without editing
+# the mcp_servers block by hand. Users in China should re-run
+# `hermes mcp configure aitoearn` after setting the URL.
+auth:
+  type: api_key
+  env:
+    - name: AITO_EARN_API_KEY
+      prompt: "AiToEarn API key (Settings → API Key in https://aitoearn.ai or https://aitoearn.cn)"
+      required: true
+      secret: true
+    - name: AITO_EARN_BASE_URL
+      prompt: "AiToEarn MCP base URL — pick the region matching your API key"
+      default: "https://aitoearn.ai/api/unified/mcp"
+      required: true
+      secret: false
+
+# Tool selection at install time:
+# AiToEarn's MCP server exposes Monetize / Publish / Engage / Create agents
+# with a moderate tool surface (typically 8-15 tools covering content
+# generation, scheduling, publishing, analytics). Mutating ones (publish
+# to social, comment engagement) require a logged-in social account via
+# the AiToEarn browser extension or Relay — so they're gated upstream,
+# not in this manifest.
+#
+# We leave `default_enabled` unset so the install-time checklist starts
+# with everything pre-checked. Users prune what they don't want via
+# `hermes mcp configure aitoearn`.
+# Once tools are probed, list the names here to encode a curated subset.
+
+post_install: |
+  AiToEarn exposes Monetize / Publish / Engage / Create content agents
+  over MCP. The default URL is the international region
+  (https://aitoearn.ai). If you created your API key on aitoearn.cn,
+  re-run `hermes mcp configure aitoearn` and set AITO_EARN_BASE_URL to
+  https://aitoearn.cn/api/unified/mcp — environment and key must match
+  or you'll get 401s.
+
+  Get an API key: log in to https://aitoearn.ai (or https://aitoearn.cn
+  for China), open Settings → API Key, and create one.
+
+  Two environment-specific points:
+    * Publishing to Douyin / Xiaohongshu / Kuaishou / WeChat Channels
+      requires a logged-in social account — set this up in the AiToEarn
+      web UI or browser extension before publishing tools will work.
+    * The official OpenClaw plugin is also available for users who
+      prefer the npx interface (`npx -y @aitoearn/openclaw-plugin-cli`)
+      — but that runs the agent-side plugin, not the MCP server.
+
+  Start a new Hermes session to load the AiToEarn tools.

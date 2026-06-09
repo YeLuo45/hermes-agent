@@ -69,6 +69,7 @@ The picker shows each entry with its current status:
 ```
 n8n          available              Manage and inspect n8n workflows from Hermes
 linear       enabled                Linear issue/project management (remote OAuth)
+aitoearn     available              AiToEarn content marketing (Monetize/Publish/Engage/Create)
 github       installed (disabled)   GitHub repo + PR tools
 ```
 
@@ -77,6 +78,66 @@ enable, disable, or uninstall. Catalog entries are stored under
 `optional-mcps/` in the hermes-agent repo — presence in that directory means
 Nous approval. There is no community submission tier; entries are added by
 merging a PR.
+
+### AiToEarn — content marketing across 14+ social platforms
+
+[`aitoearn`](https://aitoearn.ai) is a content marketing agent with four
+capabilities — **Monetize / Publish / Engage / Create**. Hermes reaches it
+through AiToEarn's hosted MCP endpoint, so there's no local install; the
+catalog entry is a thin `http` transport + `api_key` auth wiring.
+
+Two environments, one entry:
+
+| Region | API key source | MCP URL |
+|---|---|---|
+| International | https://aitoearn.ai (Settings → API Key) | `https://aitoearn.ai/api/unified/mcp` |
+| China | https://aitoearn.cn (Settings → API Key) | `https://aitoearn.cn/api/unified/mcp` |
+
+The default URL is international. If you created your API key on aitoearn.cn,
+re-run `hermes mcp configure aitoearn` and set `AITO_EARN_BASE_URL` to the
+China URL — the key and the base URL region **must match**, otherwise you get
+401s on every tool call.
+
+Install flow:
+
+```bash
+hermes mcp install aitoearn   # prompts for AITO_EARN_API_KEY + AITO_EARN_BASE_URL
+hermes mcp probe aitoearn     # list discovered tools (Monetize/Publish/Engage/Create agents)
+```
+
+Or, if you'd rather hand-edit `~/.hermes/config.yaml` (the default block
+already ships in the shipped `config.yaml.example`), drop this in:
+
+```yaml
+mcp_servers:
+  aitoearn:
+    type: http
+    url: https://aitoearn.ai/api/unified/mcp
+    headers:
+      x-api-key: ${AITO_EARN_API_KEY}
+    timeout: 120
+    connect_timeout: 30
+    enabled: true
+```
+
+…and put `AITO_EARN_API_KEY=*** into `~/.hermes/.env`. The `${AITO_EARN_API_KEY}`
+placeholder is resolved at request time from `os.environ` (Hermes loads
+`~/.hermes/.env` into the environment at startup).
+
+Two caveats worth knowing:
+
+- **Mutating tools require logged-in social accounts.** Publishing to Douyin,
+  Xiaohongshu, Kuaishou, WeChat Channels, etc. needs the social platform
+  account linked inside AiToEarn (web UI or browser extension). Until that's
+  set up, `publish_*` tools will 4xx even though the MCP connection is healthy.
+- **`enabled: true` with a missing key is a graceful failure.** If you have
+  the default block but haven't filled `AITO_EARN_API_KEY` yet, `hermes mcp
+  status` will show `aitoearn` in the failed list — agent still starts and
+  other tools work. Fill the key (or set `enabled: false`) and reload.
+
+For the self-hosted path (Docker deployment of AiToEarn, or the official
+OpenClaw plugin `npx -y @aitoearn/openclaw-plugin-cli`), see AiToEarn's
+[DOCKER_DEPLOYMENT_CN.md](https://github.com/yikart/AiToEarn/blob/main/DOCKER_DEPLOYMENT_CN.md).
 
 Catalog entries can require:
 

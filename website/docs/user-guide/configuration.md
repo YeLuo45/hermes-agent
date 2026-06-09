@@ -548,6 +548,37 @@ file_read_max_chars: 30000
 
 The agent also deduplicates file reads automatically — if the same file region is read twice and the file hasn't changed, a lightweight stub is returned instead of re-sending the content. This resets on context compression so the agent can re-read files after their content is summarized away.
 
+### Reading binary files with `convert_to_markdown`
+
+`read_file` blocks binary formats (PDF, DOCX, PPTX, XLSX, images, ...) for safety. To let the agent read those, use the `convert_to_markdown` tool — it wraps Microsoft's [markitdown](https://github.com/microsoft/markitdown) library (14.6k stars, MIT) and converts a wide range of formats into clean Markdown:
+
+| Input | Output |
+|-------|--------|
+| PDF (`.pdf`) | text + structure |
+| PowerPoint (`.pptx`) | slide text |
+| Word (`.docx`) | paragraphs + headings + tables |
+| Excel (`.xlsx`, `.xls`) | sheet → table |
+| Images (`.png`, `.jpg`, ...) | EXIF + OCR |
+| Audio (`.mp3`, `.wav`, ...) | EXIF + speech transcription |
+| HTML (`.html`, `.htm`) | cleaned text |
+| CSV / JSON / XML | structured |
+| ZIP | iterates over contents |
+| EPUB | book text |
+| YouTube URLs | transcript |
+
+**Enable by installing the package** (lazy install is triggered automatically on first call when `security.allow_lazy_installs: true`)::
+
+    pip install 'markitdown[all]'
+
+Or pre-install manually to avoid the lazy install. The tool accepts a `path` argument (local file path **or** URL) and returns a `{success, content, metadata}` JSON envelope::
+
+    convert_to_markdown(path="/path/to/report.pdf")                  # PDF → MD
+    convert_to_markdown(path="https://example.com/page.html")         # URL
+    convert_to_markdown(path="https://youtu.be/dQw4w9WgXcQ")          # YouTube transcript
+    convert_to_markdown(path="/path/to/big.pptx", max_chars=10000)    # truncate to 10K
+
+Configurable per-call caps: `max_chars` (default 50K, output truncation) and `max_input_bytes` (default 200 MB, file size refusal). The tool also honors the website blocklist for `http(s)` URLs.
+
 ## Tool Output Truncation Limits
 
 Three related caps control how much raw output a tool can return before Hermes truncates it:
@@ -713,6 +744,40 @@ context:
 Plugin engines are **never auto-activated** — you must explicitly set `context.engine` to the plugin name. Available engines can be browsed and selected via `hermes plugins` → Provider Plugins → Context Engine.
 
 See [Memory Providers](/user-guide/features/memory-providers) for the analogous single-select system for memory plugins.
+
+### Headroom (shipped plugin)
+
+The `headroom` engine is shipped as a built-in plugin at
+`plugins/context_engine/headroom/`. It replaces the built-in compressor's
+LLM-summarization step with Headroom's deterministic, multi-algorithm
+compression pipeline (SmartCrusher for JSON, CodeCompressor for AST,
+Kompress-base for text) plus **CacheAligner** for KV-cache hit
+stabilization. Compression itself is local — no extra LLM call —
+which preserves your prompt-cache write budget.
+
+```yaml
+context:
+  engine: "headroom"
+  engine_plugins:
+    headroom:
+      target_ratio: 0.5           # keep 50% (0.2 aggressive, 0.7 conservative)
+      protect_recent: 4           # last N messages always preserved
+      kompress_model: null        # null = chopratejas/kompress-base (default)
+      compress_user_messages: false
+      compress_system_messages: true
+      min_tokens_to_compress: 250
+      ccr_enabled: false          # set true for reversible compression
+      quiet_mode: false
+```
+
+Requires `pip install "headroom-ai[all]"`. The engine falls back to
+passthrough (no compression) if the package is missing — the agent keeps
+running, you'll see a one-line warning. Run `hermes plugins` to confirm
+the engine shows up as available.
+
+See [`plugins/context_engine/headroom/__init__.py`](https://github.com/chopratejas/headroom)
+module docstring for benchmark numbers and `headroom_retrieve` tool
+details (CCR mode).
 
 ## Iteration Budget Pressure
 
@@ -1490,11 +1555,11 @@ Environment scrubbing (strips `*_API_KEY`, `*_TOKEN`, `*_SECRET`, `*_PASSWORD`, 
 
 ## Web Search Backends
 
-The `web_search` and `web_extract` tools support five backend providers. Configure the backend in `config.yaml` or via `hermes tools`:
+The `web_search` and `web_extract` tools support six backend providers. Configure the backend in `config.yaml` or via `hermes tools`:
 
 ```yaml
 web:
-  backend: firecrawl    # firecrawl | searxng | parallel | tavily | exa
+  backend: firecrawl    # firecrawl | searxng | parallel | tavily | exa | scrapling
 
   # Or use per-capability keys to mix providers (e.g. free search + paid extract):
   search_backend: "searxng"
@@ -1508,6 +1573,7 @@ web:
 | **Parallel** | `PARALLEL_API_KEY` | ✔ | ✔ |
 | **Tavily** | `TAVILY_API_KEY` | ✔ | ✔ |
 | **Exa** | `EXA_API_KEY` | ✔ | ✔ |
+| **Scrapling** | (self-hosted) | — | ✔ |
 
 **Backend selection:** If `web.backend` is not set, the backend is auto-detected from available API keys. If only `SEARXNG_URL` is set, SearXNG is used. If only `EXA_API_KEY` is set, Exa is used. If only `TAVILY_API_KEY` is set, Tavily is used. If only `PARALLEL_API_KEY` is set, Parallel is used. Otherwise Firecrawl is the default.
 
@@ -1518,6 +1584,23 @@ web:
 **Parallel search modes:** Set `PARALLEL_SEARCH_MODE` to control search behavior — `fast`, `one-shot`, or `agentic` (default: `agentic`).
 
 **Exa:** Set `EXA_API_KEY` in `~/.hermes/.env`. Supports `category` filtering (`company`, `research paper`, `news`, `people`, `personal site`, `pdf`) and domain/date filters.
+
+**Scrapling** is a self-hosted, open-source alternative to Firecrawl. Extract-only (no search API) — pair with `ddgs`/`brave`/`searxng` for search. Built around three key capabilities: (1) an **adaptive parser** that re-learns CSS selectors from saved fingerprints when a site redesigns, (2) **anti-bot bypass** via `StealthyFetcher` (defeats Cloudflare Turnstile out of the box), and (3) **two-tier fetch** that auto-escalates from fast HTTP to headless Chromium on block detection. BSD-3 licensed, no API keys, no usage caps. Configure with::
+
+    pip install "scrapling[all]>=0.4.8"
+    scrapling install --force                # downloads Playwright + Chromium
+    # ~/.hermes/config.yaml
+    web:
+      extract_backend: "scrapling"           # extract-only
+      search_backend: "ddgs"                 # pair with any search provider
+      scrapling:
+        stealthy_fallback: true              # auto-escalate on Cloudflare etc.
+        adaptive: true                       # survive site redesigns
+        timeout: 30
+        headless: true
+        max_content_chars: 50000
+
+See `plugins/web/scrapling/__init__.py` and [Scrapling docs](https://scrapling.readthedocs.io/) for the full reference.
 
 ## Browser
 
