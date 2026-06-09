@@ -1,5 +1,7 @@
 ---
+
 ---
+
 name: prj-proposals-manager
 description: 管理从需求 intake 到交付的完整提案生命周期，协调多个 Agent 或角色（Coordinator / PM / Dev / Test Expert / Research Analyst）。涵盖 intake、澄清、PRD 确认、技术评审、测试用例生成、开发交接、验收和交付。支持任意 Agent 平台（Cursor、Hermes、OpenClaw 等）
 version: 5.0.0
@@ -8,8 +10,9 @@ license: MIT
 metadata:
   hermes:
     tags: [proposal, workflow, lifecycle, project-management, mcp, ai-superpower]
-    homepage: https://yeluo45.github.io/prj-proposals-manager/
-    related_skills: [ai-superpower, ai-superpower-iteration-workflow, mcp-server-integration-workflow, harness-desktop-iteration-workflow, dbg-card-game-workflow, pixel-pal-web-workflow]
+    homepage: [https://yeluo45.github.io/prj-proposals-manager/](https://yeluo45.github.io/prj-proposals-manager/)
+related_skills: [ai-superpower, ai-superpower-iteration-workflow, mcp-server-integration-workflow, harness-desktop-iteration-workflow, dbg-card-game-workflow, pixel-pal-web-workflow]
+
 ---
 
 # 提案管理
@@ -18,24 +21,26 @@ metadata:
 
 ## 核心规则（v5.0.0 — 2026-06-08）
 
-**项目/提案数据操作应通过 ai-superpower MCP 工具（见下表）。这是 SPA（`useMcp.js`）和 agent（`aisp mcp --transport=stdio`）的推荐路径。直接编辑 CSV 仍然禁止，但用 `curl`/`requests`/`urllib` 对 REST API 或 MCP 做一次性 smoke test 是允许的。**
+**项目/提案数据操作应通过 ai-superpower MCP 工具（见下表）。这是 SPA（`useMcp.js`）和 agent（`aisp mcp --transport=stdio`）的推荐路径。**
 
 **MCP 工具**（通过 ai-superpower `mcp_server.py` 在 `/mcp` Streamable HTTP 端点暴露，详见 [ai-superpower skill](./../../productivity/ai-superpower/SKILL.md)）：
 
-| 工具 | 用途 |
-|------|------|
-| `set_api_key` | stdio 模式设置 API key（写 `AI_SUPERPOWER_API_KEY` 环境变量）|
-| `list_projects` / `get_project` / `create_project` / `update_project` | 项目 CRUD |
-| `check_project_duplicate` | 创建前重复检查（name + git_repo）|
-| `list_proposals` / `get_proposal` / `create_proposal` | 提案列表/详情/创建 |
-| `update_proposal_status` | 状态机强制转移（一次走一步）|
-| `update_proposal_fields` | 局部字段更新（status 走另一接口）|
-| `merge_proposals_by_project` | 按源项目名批量迁移提案 |
-| `get_audit` | 审计日志查询（page + filter）|
-| `get_stats` | 聚合统计 |
-| `get_sync_config` / `update_sync_config` | 同步配置读写 |
-| `export_sync` | 触发 GitHub Pages 同步导出 |
-| `get_sync_status` | 同步状态查询 |
+
+| 工具                                                                    | 用途                                                 |
+| --------------------------------------------------------------------- | -------------------------------------------------- |
+| `set_api_key`                                                         | stdio 模式设置 API key（写 `AI_SUPERPOWER_API_KEY` 环境变量） |
+| `list_projects` / `get_project` / `create_project` / `update_project` | 项目 CRUD                                            |
+| `check_project_duplicate`                                             | 创建前重复检查（name + git_repo）                           |
+| `list_proposals` / `get_proposal` / `create_proposal`                 | 提案列表/详情/创建                                         |
+| `update_proposal_status`                                              | 状态机强制转移（一次走一步）                                     |
+| `update_proposal_fields`                                              | 局部字段更新（status 走另一接口）                               |
+| `merge_proposals_by_project`                                          | 按源项目名批量迁移提案                                        |
+| `get_audit`                                                           | 审计日志查询（page + filter）                              |
+| `get_stats`                                                           | 聚合统计                                               |
+| `get_sync_config` / `update_sync_config`                              | 同步配置读写                                             |
+| `export_sync`                                                         | 触发 GitHub Pages 同步导出                               |
+| `get_sync_status`                                                     | 同步状态查询                                             |
+
 
 > **创建时的 stage**：只有 `stage: "approved_for_dev"` 接受，其他返 HTTP 422。**owner 必填**（min_length=1）。
 >
@@ -48,6 +53,7 @@ metadata:
 ---
 
 ## 提案生命周期状态机（v5 — 严格线性）
+
 ```
 intake → clarifying → prd_pending_confirmation → approved_for_dev
                                                        ↓
@@ -60,18 +66,19 @@ intake → clarifying → prd_pending_confirmation → approved_for_dev
 
 ## 阶段定义
 
-| 阶段 | 负责人 | 说明 |
-|------|--------|------|
-| `intake` | Coordinator | Boss 提出需求后创建提案 |
-| `clarifying` | Coordinator | 提问澄清需求，最多 3 轮 |
-| `prd_pending_confirmation` | PM | PRD 草稿完成，等待 boss 确认 |
-| `approved_for_dev` | Coordinator | Boss 确认后分配 dev |
-| `in_dev` | Dev | 开发实施 |
-| `in_test_acceptance` | Coordinator | 测试验收评审 |
-| `test_failed` | Coordinator | 测试未通过 |
-| `accepted` | Coordinator | 验收通过 |
-| `deployed` | Coordinator | 部署到生产环境 |
-| `delivered` | Coordinator | 交付给 boss |
+
+| 阶段                         | 负责人         | 说明                  |
+| -------------------------- | ----------- | ------------------- |
+| `intake`                   | Coordinator | Boss 提出需求后创建提案      |
+| `clarifying`               | Coordinator | 提问澄清需求，最多 3 轮       |
+| `prd_pending_confirmation` | PM          | PRD 草稿完成，等待 boss 确认 |
+| `approved_for_dev`         | Coordinator | Boss 确认后分配 dev      |
+| `in_dev`                   | Dev         | 开发实施                |
+| `in_test_acceptance`       | Coordinator | 测试验收评审              |
+| `test_failed`              | Coordinator | 测试未通过               |
+| `accepted`                 | Coordinator | 验收通过                |
+| `deployed`                 | Coordinator | 部署到生产环境             |
+| `delivered`                | Coordinator | 交付给 boss            |
 
 
 ---
@@ -145,7 +152,7 @@ Step 11: 部署（验收后交付）
 
 1. 通过 ai-superpower CLI 创建项目（如不存在）：
   ```bash
-   ai-superpower project create --name "ProjectName" --git-repo "https://github.com/owner/repo"
+   mcp_aisp.py create-project --name "ProjectName" --git-repo "https://github.com/owner/repo"
   ```
 2. 通过 ai-superpower CLI 为项目生成下一个提案 ID（自动分配，无需手动管理）
 3. 为此提案创建 gh-pages 分支（如果项目有远程仓库）：
@@ -157,7 +164,7 @@ Step 11: 部署（验收后交付）
 5. 填写基本信息和原始需求
 6. 通过 ai-superpower API 创建提案：
   ```bash
-   ai-superpower proposal create --title "ProposalTitle" --owner "coordinator" --project-id "PRJ-YYYYMMDD-XXX" --stage "intake"
+   mcp_aisp.py create-proposal --title "ProposalTitle" --owner "coordinator" --project-id "PRJ-YYYYMMDD-XXX" --stage approved_for_dev
   ```
 
 ### Step 2: 澄清需求
@@ -167,7 +174,7 @@ Step 11: 部署（验收后交付）
 - 3轮之后或需求清晰时，记录最终假设
 - 将状态流转到 `clarifying`：
   ```bash
-  ai-superpower proposal update P-YYYYMMDD-XXX --status clarifying
+  mcp_aisp.py update-proposal-status --proposal-id P-YYYYMMDD-XXX --status clarifying
   ```
 
 ### Step 3: 转给 PM
@@ -178,7 +185,7 @@ Step 11: 部署（验收后交付）
 - PM 还将 PRD 复制到 `$superpower-proposals/<project-name>/docs/prd.v1.md`
 - 通过 ai-superpower API 更新 PRD 路径：
   ```bash
-  ai-superpower proposal update P-YYYYMMDD-XXX --prd-path "$superpower-proposals/PRJ-YYYYMMDD-XXX/YYYY-MM-DD-prd.md"
+  mcp_aisp.py update-proposal-fields --proposal-id P-YYYYMMDD-XXX --prd-path "$superpower-proposals/PRJ-YYYYMMDD-XXX/YYYY-MM-DD-prd.md"
   ```
 
 ### Step 4: PRD 确认门控
@@ -192,13 +199,13 @@ PM 返回 PRD 后：
 如果确认：将 PRD Confirmation 设为 `confirmed`，取消倒计时，立即将状态流转为 `approved_for_dev` 并开始开发。
 
 ```bash
-ai-superpower proposal update P-YYYYMMDD-XXX --status approved_for_dev
+mcp_aisp.py update-proposal-status --proposal-id P-YYYYMMDD-XXX --status approved_for_dev
 ```
 
 如果超时：将 PRD Confirmation 设为 `timeout-approved`，在"Timeout Resolution"中记录，立即将状态流转为 `approved_for_dev` 并开始开发。
 
 ```bash
-ai-superpower proposal update P-YYYYMMDD-XXX --status approved_for_dev
+mcp_aisp.py update-proposal-status --proposal-id P-YYYYMMDD-XXX --status approved_for_dev
 ```
 
 ### Step 5: 技术预期门控
@@ -220,7 +227,7 @@ ai-superpower proposal update P-YYYYMMDD-XXX --status approved_for_dev
 - 同时复制到 `$superpower-proposals/<project-name>/docs/technical-solution.v1.md`
 - 通过 ai-superpower API 更新技术方案路径：
   ```bash
-  ai-superpower proposal update P-YYYYMMDD-XXX --tech-solution-path "$superpower-root/P-YYYYMMDD-XXX-tech-solution.md"
+  mcp_aisp.py update-proposal-fields --proposal-id P-YYYYMMDD-XXX --tech-solution-path "$superpower-root/P-YYYYMMDD-XXX-tech-solution.md"
   ```
 
 ### Step 6b: TDD 测试用例生成
@@ -235,18 +242,18 @@ ai-superpower proposal update P-YYYYMMDD-XXX --status approved_for_dev
   - 将测试用例复制到 `$superpower-dev/<project-name>/proposals/docs/test-cases.v1.md`
 3. 通过 ai-superpower API 将状态流转为 `in_tdd_test`：
   ```bash
-   ai-superpower proposal update P-YYYYMMDD-XXX --status in_tdd_test
+   # 注：v5 状态机没有 in_tdd_test 状态。测试用例交付后状态保持 approved_for_dev
   ```
 
 ### Step 7: 交接给开发
 
 - 将状态流转为 `in_dev`：
   ```bash
-  ai-superpower proposal update P-YYYYMMDD-XXX --status in_dev
+  mcp_aisp.py update-proposal-status --proposal-id P-YYYYMMDD-XXX --status in_dev
   ```
 - 更新 project_path：
   ```bash
-  ai-superpower proposal update P-YYYYMMDD-XXX --project-path "$superpower-proposals/<project-name>"
+  mcp_aisp.py update-proposal-fields --proposal-id P-YYYYMMDD-XXX --project-path "$superpower-proposals/<project-name>"
   ```
 - 如果目录不存在，Dev 创建 `$superpower-proposals/<project-name>/docs/`
 
@@ -276,7 +283,7 @@ Dev 报告完成后，Test Expert 基于测试用例执行验收：
 验收期间将状态流转为 `in_test_acceptance`：
 
 ```bash
-ai-superpower proposal update P-YYYYMMDD-XXX --status in_test_acceptance
+mcp_aisp.py update-proposal-status --proposal-id P-YYYYMMDD-XXX --status in_test_acceptance
 ```
 
 如果所有测试用例通过：进入 Step 9（交付）
@@ -284,7 +291,7 @@ ai-superpower proposal update P-YYYYMMDD-XXX --status in_test_acceptance
 如果任何测试用例失败：将状态流转为 `test_failed`，输出结构化返修意见：
 
 ```bash
-ai-superpower proposal update P-YYYYMMDD-XXX --status test_failed
+mcp_aisp.py update-proposal-status --proposal-id P-YYYYMMDD-XXX --status test_failed
 ```
 
 ### Step 9: 交付或返修
@@ -292,13 +299,13 @@ ai-superpower proposal update P-YYYYMMDD-XXX --status test_failed
 如果所有测试用例通过：将状态流转为 `accepted`，进入 Step 10（研究方向）：
 
 ```bash
-ai-superpower proposal update P-YYYYMMDD-XXX --status accepted
+mcp_aisp.py update-proposal-status --proposal-id P-YYYYMMDD-XXX --status accepted
 ```
 
 如果验收失败：将状态流转为 `needs_revision`，输出结构化返修意见：
 
 ```bash
-ai-superpower proposal update P-YYYYMMDD-XXX --status needs_revision
+# 注：v5 状态机没有 needs_revision 状态。验收失败后状态保持 test_failed
 ```
 
 ### Step 10: 研究方向（验收后迭代规划）
@@ -324,7 +331,8 @@ ai-superpower proposal update P-YYYYMMDD-XXX --status needs_revision
 5. 触发部署
 6. 更新提案：将状态设为 `deployed`，记录 Deployment URL：
   ```bash
-   ai-superpower proposal update P-YYYYMMDD-XXX --status deployed --deployment-url "https://..."
+   mcp_aisp.py update-proposal-fields --proposal-id P-YYYYMMDD-XXX --deployment-url "https://..."
+mcp_aisp.py update-proposal-status --proposal-id P-YYYYMMDD-XXX --status deployed
   ```
 
 ---
@@ -480,25 +488,29 @@ bash scripts/rollback_proposals.sh proposal P-YYYYMMDD-XXX
 
 ## 环境变量
 
-| 变量 | 说明 |
-|------|------|
-| `AI_SUPERPOWER_API_KEY` | API 密钥（从 `~/.ai-superpower/config.toml` 的 `[api].key` 复制）|
-| `AISP_MCP_TRANSPORT` | stdio 默认 / `http`（SPA 端通常用 http，agent 端用 stdio）|
-| `AISP_MCP_URL` | Streamable HTTP 端点（默认 `http://127.0.0.1:8000/mcp/`，注意带尾斜杠）|
+
+| 变量                      | 说明                                                         |
+| ----------------------- | ---------------------------------------------------------- |
+| `AI_SUPERPOWER_API_KEY` | API 密钥（从 `~/.ai-superpower/config.toml` 的 `[api].key` 复制）  |
+| `AISP_MCP_TRANSPORT`    | stdio 默认 / `http`（SPA 端通常用 http，agent 端用 stdio）            |
+| `AISP_MCP_URL`          | Streamable HTTP 端点（默认 `http://127.0.0.1:8000/mcp/`，注意带尾斜杠） |
+
 
 ---
 
 ## 配置
 
-| Variable | Value | Description |
-|----------|-------|-------------|
-| superpower-root | `/home/hermes/proposals` | 所有 agent 的文件目录 |
-| superpower-dev | `{superpower-root}/workspace-dev/<project>/proposals` | Dev 工作空间 |
-| superpower-pm | `{superpower-root}/workspace-pm/<project>/proposals` | PM 工作空间 |
-| superpower-test | `{superpower-root}/workspace-test/<project>/proposals` | Test 工作空间 |
-| superpower-research | `{superpower-root}/workspace-research/<project>/proposals` | Research 工作空间 |
-| superpower-proposals | `{superpower-root}/workspace-proposals/<project>` | 提案（主索引）工作空间 |
-| superpower-backups | `{superpower-root}/backups` | 备份存储目录 |
+
+| Variable             | Value                                                      | Description    |
+| -------------------- | ---------------------------------------------------------- | -------------- |
+| superpower-root      | `/home/hermes/proposals`                                   | 所有 agent 的文件目录 |
+| superpower-dev       | `{superpower-root}/workspace-dev/<project>/proposals`      | Dev 工作空间       |
+| superpower-pm        | `{superpower-root}/workspace-pm/<project>/proposals`       | PM 工作空间        |
+| superpower-test      | `{superpower-root}/workspace-test/<project>/proposals`     | Test 工作空间      |
+| superpower-research  | `{superpower-root}/workspace-research/<project>/proposals` | Research 工作空间  |
+| superpower-proposals | `{superpower-root}/workspace-proposals/<project>`          | 提案（主索引）工作空间    |
+| superpower-backups   | `{superpower-root}/backups`                                | 备份存储目录         |
+
 
 ---
 
@@ -561,7 +573,7 @@ workspace-dev/proposals/{project_name}/SPEC/
 └── .openspec.yaml    # 元数据（schema、project、创建日期）
 ```
 
-OpenSpec 参考：https://github.com/YeLuo45/OpenSpec（schemas/spec-driven/templates/）
+OpenSpec 参考：[https://github.com/YeLuo45/OpenSpec（schemas/spec-driven/templates/）](https://github.com/YeLuo45/OpenSpec（schemas/spec-driven/templates/）)
 
 ### 为已有项目初始化 SPEC
 
@@ -579,6 +591,7 @@ python3 scripts/generate-spec.py --init --all --dry-run               # 仅预�
 ```
 
 读取来源：
+
 - `workspace-dev/proposals/{project_name}/README.md`（项目描述、功能、技术栈）
 - `workspace-dev/proposals/{project_name}/SPEC.md`（如果存在）
 - 无来源时使用模板内容

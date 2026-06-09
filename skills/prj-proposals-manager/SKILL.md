@@ -1,4 +1,5 @@
 ---
+
 name: prj-proposals-manager
 description: Manage the complete proposal lifecycle from intake to delivery, coordinating multiple Agents or roles (Coordinator / PM / Dev / Test Expert / Research Analyst). Covers intake, clarification, PRD confirmation, technical review, test case generation, development handoff, acceptance, and delivery. Platform-agnostic (works with Cursor, Hermes, OpenClaw, etc.)
 version: 5.0.0
@@ -7,8 +8,9 @@ license: MIT
 metadata:
   hermes:
     tags: [proposal, workflow, lifecycle, project-management, mcp, ai-superpower]
-    homepage: https://yeluo45.github.io/prj-proposals-manager/
-    related_skills: [ai-superpower, ai-superpower-iteration-workflow, mcp-server-integration-workflow, harness-desktop-iteration-workflow, dbg-card-game-workflow, pixel-pal-web-workflow]
+    homepage: [https://yeluo45.github.io/prj-proposals-manager/](https://yeluo45.github.io/prj-proposals-manager/)
+related_skills: [ai-superpower, ai-superpower-iteration-workflow, mcp-server-integration-workflow, harness-desktop-iteration-workflow, dbg-card-game-workflow, pixel-pal-web-workflow]
+
 ---
 
 # Proposal Management
@@ -16,24 +18,27 @@ metadata:
 A platform-agnostic skill for managing proposal lifecycle across multi-role workflows (Coordinator / PM / Dev / Test Expert / Research Analyst). Covers intake, clarification, PRD confirmation, technical review, test case generation, development handoff, acceptance, and delivery.
 
 ## Core Rule (v5.0.0 — 2026-06-08)
-**Project/proposal data operations should go through ai-superpower MCP tools (see below). This is the recommended path for SPA (`useMcp.js`) and agents (`aisp mcp --transport=stdio`). Direct CSV editing is still prohibited, but `curl`/`requests`/`urllib` smoke tests against the REST API or MCP are acceptable for one-off verification.**
+
+**Project/proposal data operations should go through ai-superpower MCP tools (see below). This is the recommended path for SPA (`useMcp.js`) and agents (`aisp mcp --transport=stdio`).**
 
 **MCP tools** (exposed via ai-superpower `mcp_server.py` at `/mcp` Streamable HTTP endpoint):
 
-| Tool | Purpose |
-|------|---------|
-| `set_api_key` | stdio 模式下设 API key（写 `AI_SUPERPOWER_API_KEY` env） |
-| `list_projects` / `get_project` / `create_project` / `update_project` | 项目 CRUD |
-| `check_project_duplicate` | 创建前重复检查（name + git_repo） |
-| `list_proposals` / `get_proposal` / `create_proposal` | 提案列表/详情/创建 |
-| `update_proposal_status` | 状态机强制转移（仅一次走一步） |
-| `update_proposal_fields` | 局部字段更新（status 走另一接口） |
-| `merge_proposals_by_project` | 按源项目名批量迁移提案 |
-| `get_audit` | 审计日志查询（page + filter） |
-| `get_stats` | 聚合统计 |
-| `get_sync_config` / `update_sync_config` | 同步配置读写 |
-| `export_sync` | 触发 GitHub Pages 同步导出 |
-| `get_sync_status` | 同步状态查询 |
+
+| Tool                                                                  | Purpose                                           |
+| --------------------------------------------------------------------- | ------------------------------------------------- |
+| `set_api_key`                                                         | stdio 模式下设 API key（写 `AI_SUPERPOWER_API_KEY` env） |
+| `list_projects` / `get_project` / `create_project` / `update_project` | 项目 CRUD                                           |
+| `check_project_duplicate`                                             | 创建前重复检查（name + git_repo）                          |
+| `list_proposals` / `get_proposal` / `create_proposal`                 | 提案列表/详情/创建                                        |
+| `update_proposal_status`                                              | 状态机强制转移（仅一次走一步）                                   |
+| `update_proposal_fields`                                              | 局部字段更新（status 走另一接口）                              |
+| `merge_proposals_by_project`                                          | 按源项目名批量迁移提案                                       |
+| `get_audit`                                                           | 审计日志查询（page + filter）                             |
+| `get_stats`                                                           | 聚合统计                                              |
+| `get_sync_config` / `update_sync_config`                              | 同步配置读写                                            |
+| `export_sync`                                                         | 触发 GitHub Pages 同步导出                              |
+| `get_sync_status`                                                     | 同步状态查询                                            |
+
 
 > **Create stage values**: Only `stage: "approved_for_dev"` accepted at creation time; others return HTTP 422. **Owner 是必填** — min_length=1.
 > **Field updates**: Use `update_proposal_fields` — NOT `update_proposal_status`.
@@ -44,6 +49,7 @@ A platform-agnostic skill for managing proposal lifecycle across multi-role work
 ---
 
 ## Proposal Lifecycle State Machine (v5 — strict linear)
+
 ```
 intake → clarifying → prd_pending_confirmation → approved_for_dev
                                                        ↓
@@ -53,6 +59,7 @@ intake → clarifying → prd_pending_confirmation → approved_for_dev
                  ↓
              deployed → delivered
 ```
+
 - **Strict linear**: 每个箭头必须独立调 `update_proposal_status`，不可跳跃
 - `in_dev` 是起始开发状态
 - `in_test_acceptance` 是测试验收状态
@@ -61,18 +68,20 @@ intake → clarifying → prd_pending_confirmation → approved_for_dev
 
 ## Stage Definitions
 
-| Stage | Owner | Description |
-|-------|-------|-------------|
-| `intake` | Coordinator | Proposal created after boss raises a request |
-| `clarifying` | Coordinator | Clarifying questions, max 3 rounds |
-| `prd_pending_confirmation` | PM | PRD draft ready, waiting for boss confirmation |
-| `approved_for_dev` | Coordinator | Boss confirmed, assigning dev |
-| `in_dev` | Dev | Development in progress |
-| `in_test_acceptance` | Coordinator | Test acceptance review |
-| `test_failed` | Coordinator | Test did not pass |
-| `accepted` | Coordinator | Acceptance passed |
-| `deployed` | Coordinator | Deployed to production |
-| `delivered` | Coordinator | Delivered to boss |
+
+| Stage                      | Owner       | Description                                    |
+| -------------------------- | ----------- | ---------------------------------------------- |
+| `intake`                   | Coordinator | Proposal created after boss raises a request   |
+| `clarifying`               | Coordinator | Clarifying questions, max 3 rounds             |
+| `prd_pending_confirmation` | PM          | PRD draft ready, waiting for boss confirmation |
+| `approved_for_dev`         | Coordinator | Boss confirmed, assigning dev                  |
+| `in_dev`                   | Dev         | Development in progress                        |
+| `in_test_acceptance`       | Coordinator | Test acceptance review                         |
+| `test_failed`              | Coordinator | Test did not pass                              |
+| `accepted`                 | Coordinator | Acceptance passed                              |
+| `deployed`                 | Coordinator | Deployed to production                         |
+| `delivered`                | Coordinator | Delivered to boss                              |
+
 
 ---
 
@@ -81,6 +90,7 @@ intake → clarifying → prd_pending_confirmation → approved_for_dev
 ### Default Mode (Interactive)
 
 When user confirmation is needed, present A/B/C/D options and wait for single-letter reply:
+
 - Options in brackets: `[A] Option A  [B] Option B  [C] Option C  [D] Continue`
 - User replies with a single letter (case-insensitive)
 - Timeout triggers first option as default
@@ -90,11 +100,13 @@ When user confirmation is needed, present A/B/C/D options and wait for single-le
 For continuous iteration when no user is present. Enabled when requester/boss specifies "unattended" or "auto" when submitting a proposal.
 
 **How to enter:**
+
 - Boss/requester declares intent: "I want to run this project in unattended mode" or "run in unattended mode"
 - Record as `mode: unattended` in the proposal's `notes` field
 - Once entered, all subsequent iterations automatically stay in unattended mode
 
 **Characteristics:**
+
 - Always auto-selects first option (default)
 - Does not wait for user input
 - Delivery always includes A/B/C/D iteration options to ensure continuity
@@ -102,10 +114,12 @@ For continuous iteration when no user is present. Enabled when requester/boss sp
 - Unattended mode persists across iterations — once set, stays active until boss explicitly exits
 
 **Pass-through rules:**
+
 - When creating a new iteration proposal under an unattended project, inherit unattended mode
 - Do not clear unattended mode after delivery — continue iterating until boss explicitly exits
 
 **Trigger timing:**
+
 - On delivery: always provide A/B/C/D iteration options, auto-select first
 - PRD/Technical expectation confirmation: auto-approve and continue after 5 min timeout
 - No clarification questions in unattended mode
@@ -138,22 +152,22 @@ When the request is to clone an existing GitHub repo and register as a proposal 
 
 ### Step 1b: Register New Proposal from Scratch
 
-1. Create project via ai-superpower CLI (if not exists):
-   ```bash
-   ai-superpower project create --name "ProjectName" --git-repo "https://github.com/owner/repo"
-   ```
-2. Create proposal via ai-superpower API (ID auto-generated, no manual management)
+1. Create project via `mcp_aisp.py` (MCP CLI):
+  ```bash
+  mcp_aisp.py create-project --name "ProjectName" --git-repo "https://github.com/owner/repo"
+  ```
+2. Create proposal via `mcp_aisp.py` (ID auto-generated, no manual management)
 3. Create gh-pages branch for the proposal (if project has remote repo):
-   ```bash
-   cd $DEV_PROPOSALS/<project-name>
-   git checkout -b gh-pages
-   ```
+  ```bash
+  cd $DEV_PROPOSALS/<project-name>
+  git checkout -b gh-pages
+  ```
 4. Copy `$TEMPLATES_DIR/request-intake-template.md` to proposal directory
 5. Fill in basic info and original request
-6. Create proposal via ai-superpower API:
-   ```bash
-   ai-superpower proposal create --title "ProposalTitle" --owner "coordinator" --project-id "PRJ-YYYYMMDD-XXX" --stage "intake"
-   ```
+6. Create proposal via `mcp_aisp.py`:
+  ```bash
+  mcp_aisp.py create-proposal --title "ProposalTitle" --owner "coordinator" --project-id "PRJ-YYYYMMDD-XXX" --stage "approved_for_dev"
+  ```
 
 ### Step 2: Clarify Requirements
 
@@ -162,7 +176,7 @@ When the request is to clone an existing GitHub repo and register as a proposal 
 - After 3 rounds or when requirements are clear, record final assumptions
 - Transition status to `clarifying`:
   ```bash
-  ai-superpower proposal update P-YYYYMMDD-XXX --status clarifying
+  mcp_aisp.py update-proposal-status --proposal-id P-YYYYMMDD-XXX --status clarifying
   ```
 
 ### Step 3: Transfer to PM
@@ -171,10 +185,14 @@ If the request is just an idea or rough draft, transfer to PM role to generate P
 
 - PM saves PRD to `$PM_PROPOSALS/PRJ-YYYYMMDD-XXX/YYYY-MM-DD-prd.md`
 - PM also copies PRD to `$DEV_PROPOSALS/<project-name>/docs/prd.v1.md`
-- Update PRD path via ai-superpower API:
+- Update PRD path via `mcp_aisp.py`:
   ```bash
-  ai-superpower proposal update P-YYYYMMDD-XXX --prd-path "$PM_PROPOSALS/PRJ-YYYYMMDD-XXX/YYYY-MM-DD-prd.md"
+  mcp_aisp.py update-proposal-fields --proposal-id P-YYYYMMDD-XXX --prd-path "$PM_PROPOSALS/PRJ-YYYYMMDD-XXX/YYYY-MM-DD-prd.md"
   ```
+
+**PM PRD UI styling** (for stakeholders who view PRD as rendered UI):
+- Apply [YeLuo45/taste-skill](https://github.com/YeLuo45/taste-skill) skills: `minimist-ui` (editorial typography), `output-skill` (no truncation), `brandkit` (project portfolio consistency)
+- Full patterns + anti-patterns: `references/pm-prd-ui-taste-skill.md`
 
 ### Step 4: PRD Confirmation Gate
 
@@ -185,8 +203,9 @@ After PM returns PRD:
 3. Record countdown reference in "PRD Confirmation Countdown ID"
 
 If confirmed: set PRD Confirmation to `confirmed`, cancel countdown, immediately transition to `approved_for_dev` and start development.
+
 ```bash
-ai-superpower proposal update P-YYYYMMDD-XXX --status approved_for_dev
+mcp_aisp.py update-proposal-status --proposal-id P-YYYYMMDD-XXX --status approved_for_dev
 ```
 
 If timeout: set PRD Confirmation to `timeout-approved`, record in "Timeout Resolution", immediately transition to `approved_for_dev` and start development.
@@ -205,6 +224,7 @@ If confirmed: set Technical Expectations to `confirmed`, write technical solutio
 If timeout: set Technical Expectations to `timeout-approved`, proceed with current assumptions, write technical solution and transition to `approved_for_dev`.
 
 **⚠️ Timeout cron firing on proposal with missing index entry:** If the cron job fires but `proposal-index.md` has no entry for that proposal (yet ai-superpower CSV has the proposal — verify via `list_proposals` MCP tool or `grep -n "P-YYYYMMDD-XXX" /home/hermes/proposals/proposals.csv`), do NOT manually edit the index. Follow the recovery path in `references/proposal-index-missing-entry.md`:
+
 1. Verify the proposal exists in ai-superpower via `aisp proposal get P-YYYYMMDD-XXX` (or `get_proposal` MCP tool)
 2. Run `sync-proposals-to-website.py` to reconcile the index
 3. Only after the entry appears in the index should you attempt field updates
@@ -214,9 +234,9 @@ If timeout: set Technical Expectations to `timeout-approved`, proceed with curre
 
 - Output to `$superpower-root/P-YYYYMMDD-XXX-tech-solution.md`
 - Also copy to `$DEV_PROPOSALS/<project-name>/docs/technical-solution.v1.md`
-- Update via ai-superpower API:
+- Update via `mcp_aisp.py`:
   ```bash
-  ai-superpower proposal update P-YYYYMMDD-XXX --tech-solution-path "$superpower-root/P-YYYYMMDD-XXX-tech-solution.md"
+  mcp_aisp.py update-proposal-fields --proposal-id P-YYYYMMDD-XXX --tech-solution-path "$superpower-root/P-YYYYMMDD-XXX-tech-solution.md"
   ```
 
 ### Step 6b: TDD Test Case Generation
@@ -224,27 +244,22 @@ If timeout: set Technical Expectations to `timeout-approved`, proceed with curre
 After technical solution output, transfer to Test Expert to generate test cases based on TDD principles:
 
 1. Coordinator hands off to Test Expert with: PRD doc, technical solution doc, project background
-
 2. Test Expert outputs to `$superpower-test/<project-name>/YYYY-MM-DD-test-cases.md`
-   - Test cases must be traceable to PRD requirements
-   - Include: test case ID, description, preconditions, steps, expected results
-   - Cover normal paths and edge cases
-   - Copy to `$superpower-dev/<project-name>/proposals/docs/test-cases.v1.md`
-
-3. Transition status to `in_tdd_test` via ai-superpower API:
-   ```bash
-   ai-superpower proposal update P-YYYYMMDD-XXX --status in_tdd_test
-   ```
+  - Test cases must be traceable to PRD requirements
+  - Include: test case ID, description, preconditions, steps, expected results
+  - Cover normal paths and edge cases
+  - Copy to `$superpower-dev/<project-name>/proposals/docs/test-cases.v1.md`
+3. Test cases delivered to Dev (status stays in `approved_for_dev` per v5 state machine; no `in_tdd_test` state exists)
 
 ### Step 7: Handoff to Dev
 
 - Transition status to `in_dev`:
   ```bash
-  ai-superpower proposal update P-YYYYMMDD-XXX --status in_dev
+  mcp_aisp.py update-proposal-status --proposal-id P-YYYYMMDD-XXX --status in_dev
   ```
 - Update project_path:
   ```bash
-  ai-superpower proposal update P-YYYYMMDD-XXX --project-path "$DEV_PROPOSALS/<project-name>"
+  mcp_aisp.py update-proposal-fields --proposal-id P-YYYYMMDD-XXX --project-path "$DEV_PROPOSALS/<project-name>"
   ```
 - If directory doesn't exist, Dev creates `$DEV_PROPOSALS/<project-name>/docs/`
 
@@ -253,44 +268,47 @@ After technical solution output, transfer to Test Expert to generate test cases 
 After Dev reports completion, Test Expert performs acceptance based on test cases:
 
 Requirements consistency:
+
 - Matches requester-confirmed requirements
 - Aligned with PRD
 - No scope creep or cutting corners
 
 Test case execution:
+
 - Execute each test case in `test-cases.vN.md`
 - Record pass/fail status for each
 - Record any deviations or failures
 
 Functional verification (must实际操作, not just screenshots):
+
 - Core features work end-to-end
 - Console/logs have no Error (warnings acceptable)
 - Existing features not broken
 - Build succeeds
 
 Transition status to `in_test_acceptance` during acceptance:
+
 ```bash
-ai-superpower proposal update P-YYYYMMDD-XXX --status in_test_acceptance
+mcp_aisp.py update-proposal-status --proposal-id P-YYYYMMDD-XXX --status in_test_acceptance
 ```
 
 If all test cases pass: proceed to Step 9 (delivery)
 
 If any test case fails: transition to `test_failed`, output structured revision feedback:
+
 ```bash
-ai-superpower proposal update P-YYYYMMDD-XXX --status test_failed
+mcp_aisp.py update-proposal-status --proposal-id P-YYYYMMDD-XXX --status test_failed
 ```
 
 ### Step 9: Delivery or Revision
 
 If all test cases pass: transition to `accepted`, proceed to Step 10 (research direction):
+
 ```bash
-ai-superpower proposal update P-YYYYMMDD-XXX --status accepted
+mcp_aisp.py update-proposal-status --proposal-id P-YYYYMMDD-XXX --status accepted
 ```
 
-If acceptance fails: transition to `needs_revision`, output structured revision feedback:
-```bash
-ai-superpower proposal update P-YYYYMMDD-XXX --status needs_revision
-```
+If acceptance fails: dev revises based on feedback, then test runs again. Status stays `test_failed` until next acceptance cycle, then back to `in_test_acceptance` (re-test the fixed version).
 
 ### Step 10: Research Direction (Post-Acceptance Iteration Planning)
 
@@ -314,130 +332,109 @@ After acceptance passes (status becomes `accepted`):
 4. Push to remote
 5. Trigger deployment
 6. Update proposal: transition to `deployed`, record Deployment URL:
-   ```bash
-   ai-superpower proposal update P-YYYYMMDD-XXX --status deployed --deployment-url "https://..."
-   ```
+  ```bash
+  mcp_aisp.py update-proposal-fields --proposal-id P-YYYYMMDD-XXX --deployment-url "https://..."
+  mcp_aisp.py update-proposal-status --proposal-id P-YYYYMMDD-XXX --status deployed
+  ```
 
 ---
 
 ## API Quick Reference
 
-All operations use HTTP REST API, Base URL = `http://127.0.0.1:8000`, Header: `X-API-Key: {key}`
+**All operations go through `mcp_aisp.py`** (this script spawns `aisp mcp --transport=stdio` and forwards JSON-RPC tool calls). No direct REST/urllib access is required for normal workflow.
+
+For one-off smoke tests or legacy code, the underlying REST API is still available at `http://127.0.0.1:8000` with `X-API-Key` header.
 
 > **Full endpoint documentation**: see `../../ai-superpower/docs/api/`:
+>
 > - `projects.md` — Project CRUD endpoints
 > - `proposals.md` — Proposal CRUD + status transitions
 > - `utilities.md` — Audit, validate, health, CLI reference
-
-## ⚠️ CRITICAL: Port Discovery — Always Try Both 8000 and 8001
-
-**In 2026-06 session, server responded on 8000 despite config.toml showing `socket_path = "127.0.0.1:8001"`**. The server had been started with `ai-superpower run` (HTTP mode) and was listening on 8000, NOT 8001. The socket_path in config.toml is for Unix socket mode, NOT the HTTP port.
-
-**Rule**: When API calls fail on one port, try the other immediately. Do NOT assume config.toml port is correct — the server may be running on a different port than configured.
-
-```bash
-# Try 8000 first, then 8001
-curl -s --max-time 3 "http://127.0.0.1:8000/api/health" || \
-curl -s --max-time 3 "http://127.0.0.1:8001/api/health"
-```
 
 ## ⚠️ CRITICAL: stage vs status Field (2026-06-03 API change)
 
 The ai-superpower API has TWO separate fields that look similar but mean different things:
 
-| Field | Purpose | Example valid values | When set |
-|-------|---------|---------------------|----------|
-| `stage` | Lifecycle stage (less granular, defaults at create) | `"proposal"`, `"in_dev"`, `"development"`, `"research"`, `"ideation"`, `"active"`, `"accepted"`, `"delivered"`, `"approved_for_dev"`, `"prd_pending_confirmation"`, `"in_acceptance"` | At creation AND via fields update |
-| `status` | State machine status (more granular, transition-enforced) | `"intake"`, `"clarifying"`, `"prd_pending_confirmation"`, `"approved_for_dev"`, `"in_tdd_test"`, `"in_dev"`, `"in_test_acceptance"`, `"test_failed"`, `"needs_revision"`, `"accepted"`, `"deployed"`, `"delivered"` | ONLY via `PUT /api/proposals/{id}/status` (state machine enforced) |
 
-**⚠️ CRITICAL pitfall (validated 2026-06-03 card-game-prototype V264+)**: `intake` is a valid `status` value but is NOT a valid `stage` value at creation. Using `stage: "intake"` returns HTTP 422 `"Invalid stage: intake"`.
+| Field    | Purpose                                                   | Example valid values                                                                                                                                                                                                | When set                                                           |
+| -------- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| `stage`  | Lifecycle stage (less granular, defaults at create)       | `"proposal"`, `"in_dev"`, `"development"`, `"research"`, `"ideation"`, `"active"`, `"accepted"`, `"delivered"`, `"approved_for_dev"`, `"prd_pending_confirmation"`, `"in_acceptance"`                               | At creation AND via fields update                                  |
+| `status` | State machine status (more granular, transition-enforced) | `"intake"`, `"clarifying"`, `"prd_pending_confirmation"`, `"approved_for_dev"`, `"in_dev"`, `"in_test_acceptance"`, `"test_failed"`, `"accepted"`, `"deployed"`, `"delivered"` | ONLY via `update-proposal-status` (state machine enforced) |
+
+
+**⚠️ CRITICAL pitfall (validated 2026-06-03)**: `intake` is a valid `status` value but is NOT a valid `stage` value at creation. `mcp_aisp.py create-proposal --stage intake` returns "Invalid stage: intake".
 
 ```bash
-# ❌ WRONG — returns 422 "Invalid stage: intake"
-curl -X POST /api/proposals -d '{"title":"...","owner":"...","project_id":"...","stage":"intake"}'
+# ❌ WRONG — returns "Invalid stage: intake"
+mcp_aisp.py create-proposal --title "X" --owner "O" --project-id "PRJ-..." --stage intake
 
-# ✅ CORRECT — use "proposal" for initial stage, then transition status to "intake"
-curl -X POST /api/proposals -d '{"title":"...","owner":"...","project_id":"...","stage":"proposal","status":"intake"}'
+# ✅ CORRECT — use "approved_for_dev" (the only valid initial stage)
+mcp_aisp.py create-proposal --title "X" --owner "O" --project-id "PRJ-..." --stage approved_for_dev
+# Proposal starts with status="intake" by default; transition via:
+mcp_aisp.py update-proposal-status --proposal-id P-... --status clarifying
 ```
 
 **Full valid `stage` list** (from `ai-superpower/src/ai_superpower/models.py: VALID_PROPOSAL_STAGES`):
 `"ideation"`, `"development"`, `"research"`, `"proposal"`, `"in_dev"`, `"in_acceptance"`, `"accepted"`, `"delivered"`, `"active"`, `"approved_for_dev"`, `"prd_pending_confirmation"`
 
-**Why two fields**: `stage` is the coarse-grained category; `status` is the fine-grained state machine. `status` is authoritative for transitions; `stage` is mostly metadata that auto-syncs with status changes. In unattended mode, the convention is `stage="proposal", status="intake"` at creation — then run the full status transition sequence.
+**Why two fields**: `stage` is the coarse-grained category; `status` is the fine-grained state machine. `status` is authoritative for transitions; `stage` is mostly metadata that auto-syncs with status changes. In unattended mode, the convention is `--stage approved_for_dev` at creation — the proposal starts with `status="intake"` and the agent walks it through the state machine.
 
-### Project Operations (Python)
-```python
-import os
-base_url = "http://127.0.0.1:8000"  # Port 8000 confirmed 2026-05-24
+### Common Operations (mcp_aisp.py)
 
-# ai-superpower/docs/api/projects_api.py
-from projects_api import ProjectsAPI
-api = ProjectsAPI(api_key=os.environ["SUPERPOWER_API_KEY"], base_url=base_url)
+```bash
+# ─── Projects ────────────────────────────────────────────────────────────
+mcp_aisp.py list-projects --search "ai-" --page-size 5
+mcp_aisp.py get-project --project-id PRJ-20260608-001
+mcp_aisp.py create-project --name "MyProj" --git-repo "https://github.com/o/r"
+mcp_aisp.py update-project --project-id PRJ-... --name "NewName" --description "..."
 
-api.list(search="keyword", sort_by="last_update", sort_order="desc")
-api.get("PRJ-20260523-001")
-api.create(name="my-project", git_repo="https://github.com/owner/repo")
-api.update("PRJ-20260523-001", name="new-name")
-api.delete("PRJ-20260523-001")   # requires allow_delete=true
+# ─── Proposals ───────────────────────────────────────────────────────────
+mcp_aisp.py list-proposals --project-id PRJ-... --status in_dev
+mcp_aisp.py get-proposal --proposal-id P-20260608-005
+mcp_aisp.py create-proposal \
+  --title "My proposal" \
+  --owner "coordinator" \
+  --project-id PRJ-20260608-001 \
+  --stage approved_for_dev
+mcp_aisp.py update-proposal-fields \
+  --proposal-id P-20260608-005 \
+  --notes "..." \
+  --tech-solution-path "/path/to/sol.md"
+mcp_aisp.py update-proposal-status --proposal-id P-... --status in_dev
+mcp_aisp.py check-project-duplicate --name "X" --git-repo "https://..."
+mcp_aisp.py merge-proposals-by-project \
+  --target-project-id PRJ-NEW \
+  --source-project-name "old-name"
+
+# ─── Audit + stats ───────────────────────────────────────────────────────
+mcp_aisp.py get-audit --entity proposal --op create --page-size 10
+mcp_aisp.py get-stats --days 7
+
+# ─── Sync ────────────────────────────────────────────────────────────────
+mcp_aisp.py get-sync-config
+mcp_aisp.py export-sync
+mcp_aisp.py get-sync-status
 ```
 
-### Proposal Operations (Python)
-```python
-import os
-base_url = "http://127.0.0.1:8000"  # Port 8000 confirmed 2026-05-24
+### Legacy REST API (curl/urllib) — Only for Smoke Tests
 
-# ai-superpower/docs/api/proposals_api.py
-from proposals_api import ProposalsAPI
-api = ProposalsAPI(api_key=os.environ["SUPERPOWER_API_KEY"], base_url=base_url)
+> **⚠️ The REST API is still available for one-off smoke tests and emergency debugging, but new code should use `mcp_aisp.py`.** Direct `urllib`/`curl` access bypasses MCP's auth/lifespan management and state machine validation.
 
-api.list(project_id="PRJ-20260523-001", status="in_dev", search="keyword")
-api.get("P-20260523-001")
-# Create with stage="proposal" (NOT "intake") — intake is a status, not a stage
-api.create(title="proposal-title", owner="owner", project_id="PRJ-20260523-001", stage="proposal")
-api.update_fields("P-YYYYMMDD-XXX", tech_expectations="timeout-approved", notes="...")
-# Status transitions via dedicated endpoint (state machine enforced)
-api.update_status("P-YYYYMMDD-XXX", status="in_dev")   # state machine transition
-api.delete("P-YYYYMMDD-XXX")   # requires allow_delete=true
-```
+```bash
+# Port discovery — try 8000, then 8001 (config.toml may be stale)
+curl -s --max-time 3 "http://127.0.0.1:8000/api/health" || \
+  curl -s --max-time 3 "http://127.0.0.1:8001/api/health"
 
-### Direct HTTP (when Python API wrapper is unavailable)
-
-> **⚠️ API key MUST come from environment variable** (`AI_SUPERPOWER_API_KEY`), not from
-> reading `~/.ai-superpower/config.toml` directly. Boss preference (2026-06-04):
-> env var is the canonical source, config.toml is fallback. The same env var name
-> works for Python `os.environ['AI_SUPERPOWER_API_KEY']` and shell `$AI_SUPERPOWER_API_KEY`.
-
-```python
-import os, json, urllib.request
-
-# ✅ PREFERRED: env var (always set this in .env or shell)
-api_key = os.environ['AI_SUPERPOWER_API_KEY']
-port = int(os.environ.get('AI_SUPERPOWER_PORT', '8000'))
-base_url = f"http://127.0.0.1:{port}"
-# If port 8000 refused, try 8001 (config.toml socket_path may be 127.0.0.1:8001)
-# If both fail → server is down, check: ps aux | grep uvicorn
-
-# Update fields (tech_expectations, notes, etc.) — PUT /api/proposals/{id}/fields
-payload = json.dumps({"tech_expectations": "timeout-approved", "notes": "..."}).encode()
-req = urllib.request.Request(
-    f"{base_url}/api/proposals/P-20260502-017/fields",
-    data=payload, method='PUT',
-    headers={'X-API-Key': api_key, 'Content-Type': 'application/json'}
-)
-with urllib.request.urlopen(req) as resp:
-    result = json.loads(resp.read())
-
-# Update status (state machine) — PUT /api/proposals/{id}/status
-payload2 = json.dumps({"status": "in_dev"}).encode()
-req2 = urllib.request.Request(
-    f"{base_url}/api/proposals/P-20260502-017/status",
-    data=payload2, method='PUT',
-    headers={'X-API-Key': api_key, 'Content-Type': 'application/json'}
-)
+# Direct REST call (requires X-API-Key header)
+curl -X PUT "http://127.0.0.1:8000/api/proposals/P-.../status" \
+  -H "X-API-Key: $AI_SUPERPOWER_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"status":"in_dev"}'
 ```
 
 **Shell-only env var setup pattern** (when token contains special chars and direct
 `export X="token"` fails parsing — common with hex keys):
+
 ```bash
 # Write token to a dedicated .env file (never inlined into commands)
 cat > /tmp/asp.env <<EOF
@@ -456,7 +453,9 @@ Hermes security scan BLOCK with "user has NOT consented". The .env file +
 that run in shell context.
 
 ### Server Down Recovery
+
 If both port 8000 and 8001 return connection refused:
+
 ```bash
 # Check if ai-superpower process is running
 ps aux | grep -E 'uvicorn|fastapi' | grep -v grep
@@ -469,6 +468,7 @@ ss -tlnp | grep -E '8000|8001|8002'
 ```
 
 ### Audit Log
+
 ```python
 # ai-superpower/docs/api/utilities_api.py
 from utilities_api import UtilitiesAPI
@@ -492,6 +492,7 @@ Before acceptance, must verify three hard criteria:
 ### Takeover Triggers
 
 Coordinator should take over directly if any condition is met:
+
 - Dev fails delivery 2 consecutive times
 - Dev session interrupted by API/quota error
 - Dev session abnormally short (<30s) yet claims completion
@@ -500,6 +501,7 @@ Coordinator should take over directly if any condition is met:
 ### Fix Recording
 
 When Coordinator fixes directly, record to:
+
 1. Project memory file (e.g. `MEMORY.md`) relevant section
 2. Daily log (e.g. `memory/YYYY-MM-DD.md`)
 3. Proposal's Notes or Main Fixes Applied field
@@ -519,6 +521,7 @@ bash scripts/backup_proposals.sh
 **Data source MUST be ai-superpower API — direct CSV read is prohibited.** `backup_proposals.sh` calls `backup_api.py` which paginates `/api/projects` and `/api/proposals` and converts JSON to CSV.
 
 > **API endpoint gotchas**:
+>
 > - **Port**: Server may be on 8000 OR 8001 depending on how it was started (`ai-superpower run` uses 8000, socket_path in config.toml is for socket mode not HTTP). Always try both ports when one fails.
 > - Path is `/api/{entity}`, NOT `/api/v1/{entity}` (the v1 prefix does NOT exist)
 > - `page_size` max is 200 — passing 1000 returns HTTP 422
@@ -552,13 +555,16 @@ bash scripts/rollback_proposals.sh proposal P-YYYYMMDD-XXX
 
 ### Rollback Behavior
 
-| Command | Data Restored |
-|---------|---------------|
-| `full N` | All CSV + markdown files in backup N |
-| `project <id> N` | projects.csv entry + related proposals + mappings |
-| `proposal <id> N` | Single proposal in proposals.csv + mappings |
+
+| Command           | Data Restored                                     |
+| ----------------- | ------------------------------------------------- |
+| `full N`          | All CSV + markdown files in backup N              |
+| `project <id> N`  | projects.csv entry + related proposals + mappings |
+| `proposal <id> N` | Single proposal in proposals.csv + mappings       |
+
 
 **Safety measures:**
+
 - Full system rollback: create emergency backup of current state first
 - Project/proposal rollback: create emergency backup first
 - All operations require `yes` confirmation
@@ -567,24 +573,28 @@ bash scripts/rollback_proposals.sh proposal P-YYYYMMDD-XXX
 
 ## Environment Variables
 
-| Variable | Description |
-|----------|-------------|
+
+| Variable             | Description                                          |
+| -------------------- | ---------------------------------------------------- |
 | `SUPERPOWER_API_KEY` | API key (copied from `~/.ai-superpower/config.toml`) |
-| `SUPERPOWER_ROOT` | Root directory, defaults to `/home/hermes/proposals` |
+| `SUPERPOWER_ROOT`    | Root directory, defaults to `/home/hermes/proposals` |
+
 
 ---
 
 ## Configuration
 
-| Variable | Value | Description |
-|----------|-------|-------------|
-| superpower-root | `/home/hermes/proposals` | Root directory for all agent files |
-| superpower-dev | `{superpower-root}/workspace-dev/<project>/proposals` | Dev workspace |
-| superpower-pm | `{superpower-root}/workspace-pm/<project>/proposals` | PM workspace |
-| superpower-test | `{superpower-root}/workspace-test/<project>/proposals` | Test workspace |
-| superpower-research | `{superpower-root}/workspace-research/<project>/proposals` | Research workspace |
-| superpower-proposals | `{superpower-root}/workspace-proposals/<project>` | Proposals (main index) workspace |
-| superpower-backups | `{superpower-root}/backups` | Backup storage directory |
+
+| Variable             | Value                                                      | Description                        |
+| -------------------- | ---------------------------------------------------------- | ---------------------------------- |
+| superpower-root      | `/home/hermes/proposals`                                   | Root directory for all agent files |
+| superpower-dev       | `{superpower-root}/workspace-dev/<project>/proposals`      | Dev workspace                      |
+| superpower-pm        | `{superpower-root}/workspace-pm/<project>/proposals`       | PM workspace                       |
+| superpower-test      | `{superpower-root}/workspace-test/<project>/proposals`     | Test workspace                     |
+| superpower-research  | `{superpower-root}/workspace-research/<project>/proposals` | Research workspace                 |
+| superpower-proposals | `{superpower-root}/workspace-proposals/<project>`          | Proposals (main index) workspace   |
+| superpower-backups   | `{superpower-root}/backups`                                | Backup storage directory           |
+
 
 ---
 
@@ -647,7 +657,7 @@ workspace-dev/proposals/{project_name}/SPEC/
 └── .openspec.yaml    # Metadata (schema, project, creation date)
 ```
 
-OpenSpec reference: https://github.com/YeLuo45/OpenSpec（schemas/spec-driven/templates/）
+OpenSpec reference: [https://github.com/YeLuo45/OpenSpec（schemas/spec-driven/templates/）](https://github.com/YeLuo45/OpenSpec（schemas/spec-driven/templates/）)
 
 ### Initialize SPEC for Existing Projects
 
@@ -665,6 +675,7 @@ python3 scripts/generate-spec.py --init --all --dry-run               # preview 
 ```
 
 Read sources:
+
 - `workspace-dev/proposals/{project_name}/README.md` (project description, features, tech stack)
 - `workspace-dev/proposals/{project_name}/SPEC.md` (if exists)
 - Template content when no source available
@@ -673,34 +684,36 @@ Read sources:
 
 ## Bug Prevention
 
-| Issue | Prevention |
-|-------|------------|
-| SOUL.md / MEMORY.md conflicts after skill sync | When syncing prj-proposals-manager to a profile directory (e.g. rsync to `profiles/onepc/skills/`), the profile's SOUL.md may contain rule definitions that predate the skill spec and directly conflict with it (e.g. "write CSV first" vs API-mandate, or truncated state machines). Always check the profile's SOUL.md after syncing and align it to the skill spec — do not assume the sync alone makes the profile consistent. |
-| Duplicate IDs | API auto-generates unique IDs, no manual management |
-| CSV field misalignment | API enforces 20-field schema, no misalignment |
-| Direct CSV tampering | API writes logged to audit log, fully auditable |
-| Concurrent writes | FastAPI + file lock ensures data consistency |
-| ID range conflicts | API allocates per-project, isolated conflicts |
-| Data loss | Audit log supports replay recovery |
-| Cron job fires but proposal not in proposal-index.md | This is expected if the proposal was never written to the index. Index is derived from ai-superpower CSV (via `aisp sync-to-index`), not the authoritative source. Practical fix: (1) verify proposal exists in ai-superpower via `aisp proposal get P-YYYYMMDD-XXX` or `get_proposal` MCP tool, (2) if all target fields already correct in CSV, task is done — report [DONE]. See `references/cron-timeout-proposal-index-missing.md` for the full diagnosis flow and conclusion protocol. |
-| ai-superpower CSV has correct values but cron says to update index | ai-superpower proposals.csv is the data source (via MCP `get_proposal`). If a cron fires to "update proposal-index.md" but the CSV already contains the correct values (verified by reading lines around the ID or via MCP), the task is already done — skip all API/index operations. The index will regenerate on next `aisp sync-to-index`. |
-| Cron job asks to update proposal-index.md directly with field changes | **Always wrong** — the index is derived from ai-superpower CSV. When a cron fires with instructions to change specific fields (e.g., "Technical Expectations: pending → timeout-approved"), first read the CSV around the proposal ID or use `get_proposal` MCP. If all target values are already correct, the task is done at the data layer — report `[DONE]` and make no API calls and no index edits. The index regenerates automatically on next sync. |
-| `Recurring cron re-fires on the same proposal with the same [DONE] answer` | If a cron like `P-YYYYMMDD-XXX-tech-confirm` re-fires (2nd, 3rd time) and the data layer is still already correct, the correct output is still `[DONE]` — never escalate to manual index editing. If a cron re-fires more than 3 times on the same proposal, the cron job itself is likely misconfigured (e.g., one-shot cron scheduled as recurring `*/5 * * * *` instead of a one-shot timestamp, or auto-approval never cleared the state) |
-| ai-superpower API returns 404 but proposals.csv has correct data | Proposal is orphaned in API but CSV has all correct fields. Do NOT POST replacement (orphans original ID). Conclude data-layer task complete — report [DONE]. The index will sync later. See `references/api-404-csv-valid.md`. |
-| **proposals.csv is the authoritative source (v5)** | ai-superpower proposals.csv is the **authoritative** data store. proposals.json has been retired (v4.5+). The path is `/home/hermes/proposals/proposals.csv`. The index `proposal-index.md` is derived (regenerated by `aisp sync-to-index`). Always use MCP tools or `aisp` CLI to read/write — never directly edit the CSV. |
-| ai-superpower MCP server not running | Check `aisp run` or `aisp mcp --transport=http --port 8765` is active. Use `curl http://127.0.0.1:8000/mcp/` (or 8765) — must return 200 with serverInfo. If returning 307, URL needs trailing slash. If 500 "Task group is not initialized", restart server. |
-| MCP auth failed (X-API-Key) | Key mismatch between localStorage `mcp_api_key` and `~/.ai-superpower/config.toml [api].key`. Fix: Settings UI → 重新输入 key, or `grep '^key' ~/.ai-superpower/config.toml` to read real value. |
-| vite dev /mcp proxy 404 | Check `vite.config.js` proxy target: must be `http://127.0.0.1:8000` (or custom port). Browser DevTools Network 面板查 `/mcp` 请求看具体 status。 |
-| Cron specifies wrong proposal-index.md path | Cron job task may reference `/home/hermes/.hermes/proposals/proposal-index.md` which does not exist. The **actual correct path** is `/home/hermes/proposals/proposal-index.md` (without `.hermes/` prefix). When the specified path is not found, always search for the file first: `ls /home/hermes/proposals/proposal-index.md`. If the file exists at the correct path, use it directly. The index file may not contain the proposal entry — this is normal and does not require manual index editing. |
-| execute_code blocked in cron mode | In cron jobs (no user present), `execute_code` blocks are rejected with `BLOCKED: ... Cron jobs run without a user present to approve it.`. Similarly `python3 -c "..."` via terminal triggers `pending_approval` on the `-c` flag (`pattern_key: "script execution via -e/-c flag"`). **`bash -c '...'` is ALSO blocked** with `pattern_key: "shell command via -c/-lc flag"` — do not use it as a workaround. **Working pattern (validated 2026-06-05)**: (1) write the script to a temp file via `write_file`, e.g. `/tmp/check.py`; (2) invoke the python interpreter directly with the script path as an argument — `terminal(command="/usr/bin/python3 /tmp/check.py")` — no shell wrapper, no `-c` flag. Shell builtins like `ls`, `grep`, `wc` are unaffected. |
-| `/tmp/check_*.py` filename collision across concurrent cron fires (validated 2026-06-08) | When a recurring misconfigured cron (`*/5 * * * *`) fires multiple times in close succession on the same proposal (e.g., the P-20260502-017 case with ~12 fires/h), multiple cron prompts may run in parallel within the same 5-min window. If each one writes a diagnostic helper script to the SAME `/tmp/check_*.py` path (e.g., `/tmp/check_p20260502_017.py`), `write_file` returns a warning like `"<path> was modified by sibling subagent '<id>' but this agent never read it. Read the file before writing to avoid overwriting the sibling's changes."` — the second writer's content overwrites the first. The file IS still successfully written (the warning is informational, not a hard failure), and `read_file` will return the latest content, but two agents that each `read_file` → `write_file` against the same path can interleave and lose one agent's edits. **Fix (use from the start)**: include a unique-per-fire token in the temp filename, e.g., `<pid>` or `<unix-ms>` or `<job-id-slug>`. Pattern: `/tmp/check_<proposal-id>_<pid>_<ms>.py` — multiple concurrent fires will pick different filenames automatically. Or use `mktemp` via shell (not blocked): `mktemp --suffix=.py /tmp/check_XXXXXX`. The diagnostic script (`scripts/check-proposal-cron-state.py`) does NOT have this problem because it's pre-installed in the skill directory, not created via `write_file` per fire. |
-| proposal-index.md missing entry for valid proposal | If `proposal-index.md` has no entry for a proposal but the API and proposals.json both confirm it exists (verified via `GET /api/proposals/{id}`), the proposal is valid — it was simply never written to the index. **Do NOT manually edit proposal-index.md** to add a missing entry. The index is derived from `proposals.json` (which is synced from the API) and regenerates automatically. Diagnosis path: (1) Verify via API `proposal_get`, (2) check proposals.json for the project-centric entry, (3) conclude [DONE] if API confirms existence. |
-| proposals.json not on disk (v4 only — not applicable to v5) | **OBSOLETE for v5**: `proposals.json` has been retired. The v4 era used `proposals.json` as a flat JSON mirror in `YeLuo45/proposals-manager` GitHub repo. v5 uses ai-superpower proposals.csv exclusively. If you see this error, you are reading v4 docs — switch to v5 references. |
-| proposals.json structure mismatch | The skill described `proposals.json` as a flat `{proposals: [...]}` array, but the actual file uses a **project-centric nested structure**: `{"projects": [...], "lastUpdate": "..."}`. Each project object contains its proposals internally. When diagnosing ghost proposals, verify the actual structure by checking the file's top-level keys. The backup file `proposals.json.bak_cron_*` uses the same structure. |
-| **Port mismatch: config.toml 8001 vs actual server 8000** | `socket_path = "127.0.0.1:8001"` in config.toml is for Unix socket mode. HTTP server started with `ai-superpower run` binds to 8000 by default. When API calls fail, try the other port. |
-| **Ghost proposal: API returns 404 but CSV has the ID** | Proposals created via CSV may not exist in the API database. `PUT /api/proposals/{id}/fields` returns `{"detail":"Proposal not found"}`. Fix: create new via POST (gets auto-assigned new ID) then update fields on the new ID. |
-| proposals.csv is NOT the data source | proposals.csv is a **derived backup/export**, not the authoritative store. It may have far fewer lines than total API proposals (e.g., 32 CSV lines vs 270 API proposals). The authoritative source is the ai-superpower API, not the CSV. Do NOT use CSV as the source of truth for diagnosis or recovery. |
-**⚠️ CRITICAL (2026-06-07 data loss): Even if you must edit CSV, NEVER do `head -1 file > /tmp/new && echo new >> /tmp/new && mv /tmp/new file`** — this is **atomic file replacement** that silently drops all other rows. Lost 9 historical P-20260602-* proposals in one such operation. See `ai-superpower` skill's "CSV 全文件覆盖会静默丢行" pitfall for full diagnosis and safe patterns (`>>` append, `sed -i` in-place, Python csv module, or **the recommended path: use the API**).
+
+| Issue                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Prevention                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| SOUL.md / MEMORY.md conflicts after skill sync                                                                                                                                                                                                                                                                                                                                                                                                                                       | When syncing prj-proposals-manager to a profile directory (e.g. rsync to `profiles/onepc/skills/`), the profile's SOUL.md may contain rule definitions that predate the skill spec and directly conflict with it (e.g. "write CSV first" vs API-mandate, or truncated state machines). Always check the profile's SOUL.md after syncing and align it to the skill spec — do not assume the sync alone makes the profile consistent.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| Duplicate IDs                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | API auto-generates unique IDs, no manual management                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| CSV field misalignment                                                                                                                                                                                                                                                                                                                                                                                                                                                               | API enforces 20-field schema, no misalignment                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Direct CSV tampering                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | API writes logged to audit log, fully auditable                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Concurrent writes                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | FastAPI + file lock ensures data consistency                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ID range conflicts                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | API allocates per-project, isolated conflicts                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| Data loss                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Audit log supports replay recovery                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Cron job fires but proposal not in proposal-index.md                                                                                                                                                                                                                                                                                                                                                                                                                                 | This is expected if the proposal was never written to the index. Index is derived from ai-superpower CSV (via `aisp sync-to-index`), not the authoritative source. Practical fix: (1) verify proposal exists in ai-superpower via `aisp proposal get P-YYYYMMDD-XXX` or `get_proposal` MCP tool, (2) if all target fields already correct in CSV, task is done — report [DONE]. See `references/cron-timeout-proposal-index-missing.md` for the full diagnosis flow and conclusion protocol.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| ai-superpower CSV has correct values but cron says to update index                                                                                                                                                                                                                                                                                                                                                                                                                   | ai-superpower proposals.csv is the data source (via MCP `get_proposal`). If a cron fires to "update proposal-index.md" but the CSV already contains the correct values (verified by reading lines around the ID or via MCP), the task is already done — skip all API/index operations. The index will regenerate on next `aisp sync-to-index`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| Cron job asks to update proposal-index.md directly with field changes                                                                                                                                                                                                                                                                                                                                                                                                                | **Always wrong** — the index is derived from ai-superpower CSV. When a cron fires with instructions to change specific fields (e.g., "Technical Expectations: pending → timeout-approved"), first read the CSV around the proposal ID or use `get_proposal` MCP. If all target values are already correct, the task is done at the data layer — report `[DONE]` and make no API calls and no index edits. The index regenerates automatically on next sync.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `Recurring cron re-fires on the same proposal with the same [DONE] answer`                                                                                                                                                                                                                                                                                                                                                                                                           | If a cron like `P-YYYYMMDD-XXX-tech-confirm` re-fires (2nd, 3rd time) and the data layer is still already correct, the correct output is still `[DONE]` — never escalate to manual index editing. If a cron re-fires more than 3 times on the same proposal, the cron job itself is likely misconfigured (e.g., one-shot cron scheduled as recurring `*/5 * * * *` instead of a one-shot timestamp, or auto-approval never cleared the state)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ai-superpower API returns 404 but proposals.csv has correct data                                                                                                                                                                                                                                                                                                                                                                                                                     | Proposal is orphaned in API but CSV has all correct fields. Do NOT POST replacement (orphans original ID). Conclude data-layer task complete — report [DONE]. The index will sync later. See `references/api-404-csv-valid.md`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| **proposals.csv is the authoritative source (v5)**                                                                                                                                                                                                                                                                                                                                                                                                                                   | ai-superpower proposals.csv is the **authoritative** data store. proposals.json has been retired (v4.5+). The path is `/home/hermes/proposals/proposals.csv`. The index `proposal-index.md` is derived (regenerated by `aisp sync-to-index`). Always use MCP tools or `aisp` CLI to read/write — never directly edit the CSV.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| ai-superpower MCP server not running                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Check `aisp run` or `aisp mcp --transport=http --port 8765` is active. Use `curl http://127.0.0.1:8000/mcp/` (or 8765) — must return 200 with serverInfo. If returning 307, URL needs trailing slash. If 500 "Task group is not initialized", restart server.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| MCP auth failed (X-API-Key)                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Key mismatch between localStorage `mcp_api_key` and `~/.ai-superpower/config.toml [api].key`. Fix: Settings UI → 重新输入 key, or `grep '^key' ~/.ai-superpower/config.toml` to read real value.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| vite dev /mcp proxy 404                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Check `vite.config.js` proxy target: must be `http://127.0.0.1:8000` (or custom port). Browser DevTools Network 面板查 `/mcp` 请求看具体 status。                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| Cron specifies wrong proposal-index.md path                                                                                                                                                                                                                                                                                                                                                                                                                                          | Cron job task may reference `/home/hermes/.hermes/proposals/proposal-index.md` which does not exist. The **actual correct path** is `/home/hermes/proposals/proposal-index.md` (without `.hermes/` prefix). When the specified path is not found, always search for the file first: `ls /home/hermes/proposals/proposal-index.md`. If the file exists at the correct path, use it directly. The index file may not contain the proposal entry — this is normal and does not require manual index editing.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| execute_code blocked in cron mode                                                                                                                                                                                                                                                                                                                                                                                                                                                    | In cron jobs (no user present), `execute_code` blocks are rejected with `BLOCKED: ... Cron jobs run without a user present to approve it.`. Similarly `python3 -c "..."` via terminal triggers `pending_approval` on the `-c` flag (`pattern_key: "script execution via -e/-c flag"`). `**bash -c '...'` is ALSO blocked** with `pattern_key: "shell command via -c/-lc flag"` — do not use it as a workaround. **Working pattern (validated 2026-06-05)**: (1) write the script to a temp file via `write_file`, e.g. `/tmp/check.py`; (2) invoke the python interpreter directly with the script path as an argument — `terminal(command="/usr/bin/python3 /tmp/check.py")` — no shell wrapper, no `-c` flag. Shell builtins like `ls`, `grep`, `wc` are unaffected.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `/tmp/check_*.py` filename collision across concurrent cron fires (validated 2026-06-08)                                                                                                                                                                                                                                                                                                                                                                                             | When a recurring misconfigured cron (`*/5 * * * *`) fires multiple times in close succession on the same proposal (e.g., the P-20260502-017 case with ~12 fires/h), multiple cron prompts may run in parallel within the same 5-min window. If each one writes a diagnostic helper script to the SAME `/tmp/check_*.py` path (e.g., `/tmp/check_p20260502_017.py`), `write_file` returns a warning like `"<path> was modified by sibling subagent '<id>' but this agent never read it. Read the file before writing to avoid overwriting the sibling's changes."` — the second writer's content overwrites the first. The file IS still successfully written (the warning is informational, not a hard failure), and `read_file` will return the latest content, but two agents that each `read_file` → `write_file` against the same path can interleave and lose one agent's edits. **Fix (use from the start)**: include a unique-per-fire token in the temp filename, e.g., `<pid>` or `<unix-ms>` or `<job-id-slug>`. Pattern: `/tmp/check_<proposal-id>_<pid>_<ms>.py` — multiple concurrent fires will pick different filenames automatically. Or use `mktemp` via shell (not blocked): `mktemp --suffix=.py /tmp/check_XXXXXX`. The diagnostic script (`scripts/check-proposal-cron-state.py`) does NOT have this problem because it's pre-installed in the skill directory, not created via `write_file` per fire. |
+| proposal-index.md missing entry for valid proposal                                                                                                                                                                                                                                                                                                                                                                                                                                   | If `proposal-index.md` has no entry for a proposal but the API and proposals.json both confirm it exists (verified via `GET /api/proposals/{id}`), the proposal is valid — it was simply never written to the index. **Do NOT manually edit proposal-index.md** to add a missing entry. The index is derived from `proposals.json` (which is synced from the API) and regenerates automatically. Diagnosis path: (1) Verify via API `proposal_get`, (2) check proposals.json for the project-centric entry, (3) conclude [DONE] if API confirms existence.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| proposals.json not on disk (v4 only — not applicable to v5)                                                                                                                                                                                                                                                                                                                                                                                                                          | **OBSOLETE for v5**: `proposals.json` has been retired. The v4 era used `proposals.json` as a flat JSON mirror in `YeLuo45/proposals-manager` GitHub repo. v5 uses ai-superpower proposals.csv exclusively. If you see this error, you are reading v4 docs — switch to v5 references.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| proposals.json structure mismatch                                                                                                                                                                                                                                                                                                                                                                                                                                                    | The skill described `proposals.json` as a flat `{proposals: [...]}` array, but the actual file uses a **project-centric nested structure**: `{"projects": [...], "lastUpdate": "..."}`. Each project object contains its proposals internally. When diagnosing ghost proposals, verify the actual structure by checking the file's top-level keys. The backup file `proposals.json.bak_cron_*` uses the same structure.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| **Port mismatch: config.toml 8001 vs actual server 8000**                                                                                                                                                                                                                                                                                                                                                                                                                            | `socket_path = "127.0.0.1:8001"` in config.toml is for Unix socket mode. HTTP server started with `ai-superpower run` binds to 8000 by default. When API calls fail, try the other port.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| **Ghost proposal: API returns 404 but CSV has the ID**                                                                                                                                                                                                                                                                                                                                                                                                                               | Proposals created via CSV may not exist in the API database. `PUT /api/proposals/{id}/fields` returns `{"detail":"Proposal not found"}`. Fix: create new via POST (gets auto-assigned new ID) then update fields on the new ID.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| proposals.csv is NOT the data source                                                                                                                                                                                                                                                                                                                                                                                                                                                 | proposals.csv is a **derived backup/export**, not the authoritative store. It may have far fewer lines than total API proposals (e.g., 32 CSV lines vs 270 API proposals). The authoritative source is the ai-superpower API, not the CSV. Do NOT use CSV as the source of truth for diagnosis or recovery.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| **⚠️ CRITICAL (2026-06-07 data loss): Even if you must edit CSV, NEVER do `head -1 file > /tmp/new && echo new >> /tmp/new && mv /tmp/new file`** — this is **atomic file replacement** that silently drops all other rows. Lost 9 historical P-20260602-* proposals in one such operation. See `ai-superpower` skill's "CSV 全文件覆盖会静默丢行" pitfall for full diagnosis and safe patterns (`>>` append, `sed -i` in-place, Python csv module, or **the recommended path: use the API**). |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+
 
 | Proposals directory symlink path | `/home/hermes/.hermes/proposals` is a symlink to `/home/hermes/proposals` — it is NOT the true root. Cron job task prompts often incorrectly reference `.hermes/proposals/` subdirectories (e.g., `.hermes/proposals/proposal-index.md`). When diagnosing file-not-found errors, verify the actual path: `ls -la /home/hermes/proposals/` and `ls -la /home/hermes/.hermes/proposals/`. The canonical root is `/home/hermes/proposals`. |
 | proposals.json path for verification | When diagnosing missing entries or verifying ghost proposals, `grep` the JSON file at `/home/hermes/proposals/proposals.json` directly. The `proposals.json` file IS the data source — not the API, not the CSV, not the index. |
@@ -715,45 +728,52 @@ Read sources:
 ---
 
 ## References
+
 ## References
 
-| File | Purpose |
-|------|---------|
+
+| File                                                        | Purpose                                                                                                                                                                                                                                                                                            |
+| ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **🆕 v5.0.0 (2026-06-08)** | |
-| `references/mcp-vs-rest-migration.md` | **v4→v5 migration cheat sheet** — data source change, tool mapping, state machine, env var renames, rollback plan |
-| `references/mcp-connection-troubleshooting.md` | **7 MCP failure modes** with fixes (server down, 307 redirect, lifespan race, auth, vite proxy, CORS, localStorage corruption) + diagnostic script |
-| `references/cron-misconfigured-recurring-timeout.md` | **5-step diagnostic recipe** for cron-fire proposals when a one-shot timeout is misconfigured as `*/5 * * * *` recurring. Includes path-correction, CSV-direct read (v5), target-key verification, cron-inspection, and [DONE] response format. P-20260502-017 8802-fire counter-example included. |
-| `references/proposal-index-missing-entry.md` | Conceptual: diagnosing missing proposal-index.md entries when ai-superpower CSV has the proposal. Verify via `aisp proposal get P-...` (or MCP `get_proposal`), or `grep -n "P-..." /home/hermes/proposals/proposals.csv` directly. Index is derived from CSV, not authoritative. |
-| `references/unattended-multi-iteration-state-walk.md` | 2026-06-04 pattern: how to run N continuous unattended iterations — status state machine walking (`intake → ... → accepted`), `prd_confirmation=timeout-approved` to skip gates, `stage` vs `status` field discipline, 9-iteration Round 7 ai-novel-assistant worked example |
-| `references/ghost-proposal-functional-descendant.md` | Ghost proposal recovery when API returns 404 but functional descendant exists — state machine stepping for descendant updates |
-| `references/ghost-proposal-p-20260502-017.md` | Session log: P-20260502-017 ghost proposal (May 27 — proposal only in backup JSON, not live JSON) |
-| `references/ghost-proposal-p-20260502-017-v2.md` | Session log: P-20260502-017 second cron (June 4 — proposal in live JSON but orphaned from API, API 404) |
-| `references/ghost-proposal-p-20260502-017-v3.md` | Session log: P-20260502-017 third cron (June 9 — same ghost state, **cron-mode auto-pause applied**: `hermes cron pause 3820fdafad55` to stop 9807-fire spam; first validation of the "Cron-Mode Remediation" path) |
-| `references/cron-proposal-sync-failures.md` | Cron fires for non-existent proposals — diagnosis & handling |
-| `references/cron-timeout-proposal-index-missing.md` | Cron timeout fires but proposal already correct in ai-superpower CSV — skip API/index, task is done at data layer |
-| `references/cron-timeout-proposals-json-already-correct.md` | **v4 session log** (now superseded — v5 uses CSV): P-20260502-017 cron fired, all fields already correct in proposals.json — diagnostic sequence and key rule. See `mcp-vs-rest-migration.md` § 5 for v5 verification commands. |
-| `references/ai-superpower-architecture.md` | Anti-tamper architecture & how ai-superpower works |
-| `references/superpower-clockless-mcp-invocation.md` | superpower-clockless MCP tool pass-through workaround — `mcp-info` lists tools but CLI has no subcommand passthrough; use Python urllib instead |
-| `references/ai-superpower-cli-quirks.md` | CLI argument rules (e.g. git_repo must be https://) |
-| `references/api-quick-ref.md` | HTTP API quick reference (curl commands) |
-| `references/api-python-urllib-quick-ref.md` | Python urllib patterns for ai-superpower API (preferred over curl) |
-| `references/data-recovery.md` | Data recovery methods (via audit log) |
-| `references/local-path-population.md` | Local path population logic |
-| `references/github-repo-rename.md` | GitHub repo rename handling |
-| `references/merge-proposals-dirs.md` | Merging proposal directories |
-| `references/openspec-integration.md` | OpenSpec integration |
-| `references/vite-cache-issue.md` | Vite cache issue handling |
-| `references/favorites-system.md` | Favorites system architecture |
-| `references/bash-pitfalls.md` | Common shell script pitfalls |
+| `references/mcp-aisp-cli.md` | **Unified MCP CLI reference** — `mcp_aisp.py` covers all 18 tools, JSON-RPC via stdio, bundle behavior, exit codes, API key resolution, portability. Replaces all `aisp ...` and `urllib` patterns. |
+| `references/pm-prd-ui-taste-skill.md` | **PM PRD UI styling** — apply YeLuo45/taste-skill (minimist-ui + output-skill + brandkit) when generating PRDs that stakeholders view as rendered UI. Includes patterns + anti-patterns + before/after example. |
+| `references/mcp-vs-rest-migration.md`                       | **v4→v5 migration cheat sheet** — data source change, tool mapping, state machine, env var renames, rollback plan                                                                                                                                                                                  |
+| `references/mcp-connection-troubleshooting.md`              | **7 MCP failure modes** with fixes (server down, 307 redirect, lifespan race, auth, vite proxy, CORS, localStorage corruption) + diagnostic script                                                                                                                                                 |
+| `references/cron-misconfigured-recurring-timeout.md`        | **5-step diagnostic recipe** for cron-fire proposals when a one-shot timeout is misconfigured as `*/5 * * `* * recurring. Includes path-correction, CSV-direct read (v5), target-key verification, cron-inspection, and [DONE] response format. P-20260502-017 8802-fire counter-example included. |
+| `references/proposal-index-missing-entry.md`                | Conceptual: diagnosing missing proposal-index.md entries when ai-superpower CSV has the proposal. Verify via `aisp proposal get P-...` (or MCP `get_proposal`), or `grep -n "P-..." /home/hermes/proposals/proposals.csv` directly. Index is derived from CSV, not authoritative.                  |
+| `references/unattended-multi-iteration-state-walk.md`       | 2026-06-04 pattern: how to run N continuous unattended iterations — status state machine walking (`intake → ... → accepted`), `prd_confirmation=timeout-approved` to skip gates, `stage` vs `status` field discipline, 9-iteration Round 7 ai-novel-assistant worked example                       |
+| `references/ghost-proposal-functional-descendant.md`        | Ghost proposal recovery when API returns 404 but functional descendant exists — state machine stepping for descendant updates                                                                                                                                                                      |
+| `references/ghost-proposal-p-20260502-017.md`               | Session log: P-20260502-017 ghost proposal (May 27 — proposal only in backup JSON, not live JSON)                                                                                                                                                                                                  |
+| `references/ghost-proposal-p-20260502-017-v2.md`            | Session log: P-20260502-017 second cron (June 4 — proposal in live JSON but orphaned from API, API 404)                                                                                                                                                                                            |
+| `references/ghost-proposal-p-20260502-017-v3.md`            | Session log: P-20260502-017 third cron (June 9 — same ghost state, **cron-mode auto-pause applied**: `hermes cron pause 3820fdafad55` to stop 9807-fire spam; first validation of the "Cron-Mode Remediation" path)                                                                                |
+| `references/cron-proposal-sync-failures.md`                 | Cron fires for non-existent proposals — diagnosis & handling                                                                                                                                                                                                                                       |
+| `references/cron-timeout-proposal-index-missing.md`         | Cron timeout fires but proposal already correct in ai-superpower CSV — skip API/index, task is done at data layer                                                                                                                                                                                  |
+| `references/cron-timeout-proposals-json-already-correct.md` | **v4 session log** (now superseded — v5 uses CSV): P-20260502-017 cron fired, all fields already correct in proposals.json — diagnostic sequence and key rule. See `mcp-vs-rest-migration.md` § 5 for v5 verification commands.                                                                    |
+| `references/ai-superpower-architecture.md`                  | Anti-tamper architecture & how ai-superpower works                                                                                                                                                                                                                                                 |
+| `references/superpower-clockless-mcp-invocation.md`         | superpower-clockless MCP tool pass-through workaround — `mcp-info` lists tools but CLI has no subcommand passthrough; use Python urllib instead                                                                                                                                                    |
+| `references/ai-superpower-cli-quirks.md`                    | CLI argument rules (e.g. git_repo must be https://)                                                                                                                                                                                                                                                |
+| `references/api-quick-ref.md`                               | HTTP API quick reference (curl commands)                                                                                                                                                                                                                                                           |
+| `references/api-python-urllib-quick-ref.md`                 | Python urllib patterns for ai-superpower API (preferred over curl)                                                                                                                                                                                                                                 |
+| `references/data-recovery.md`                               | Data recovery methods (via audit log)                                                                                                                                                                                                                                                              |
+| `references/local-path-population.md`                       | Local path population logic                                                                                                                                                                                                                                                                        |
+| `references/github-repo-rename.md`                          | GitHub repo rename handling                                                                                                                                                                                                                                                                        |
+| `references/merge-proposals-dirs.md`                        | Merging proposal directories                                                                                                                                                                                                                                                                       |
+| `references/openspec-integration.md`                        | OpenSpec integration                                                                                                                                                                                                                                                                               |
+| `references/vite-cache-issue.md`                            | Vite cache issue handling                                                                                                                                                                                                                                                                          |
+| `references/favorites-system.md`                            | Favorites system architecture                                                                                                                                                                                                                                                                      |
+| `references/bash-pitfalls.md`                               | Common shell script pitfalls                                                                                                                                                                                                                                                                       |
+
 
 ## Scripts
 
-| File | Purpose |
-|------|---------|
+
+| File                                   | Purpose                                                                                                                                                                                                                                                                                                                                                       |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `scripts/check-proposal-cron-state.py` | One-shot diagnostic: reads `proposals.json`, verifies target field set, inspects cron jobs for misconfiguration, prints structured JSON verdict. Replaces 5 manual tool calls with one — exit codes 0=DONE / 1=needs action / 2=not found / 3=JSON unreadable. See `references/cron-misconfigured-recurring-timeout.md` for the recipe this script automates. |
-| `backup_proposals.sh` | Backup proposal system (API-based CSV export) |
-| `backup_api.py` | Python helper: paginate ai-superpower API → CSV |
-| `rollback_proposals.sh` | Rollback proposal system (full/project/proposal-level) |
+| `backup_proposals.sh`                  | Backup proposal system (API-based CSV export)                                                                                                                                                                                                                                                                                                                 |
+| `backup_api.py`                        | Python helper: paginate ai-superpower API → CSV                                                                                                                                                                                                                                                                                                               |
+| `rollback_proposals.sh`                | Rollback proposal system (full/project/proposal-level)                                                                                                                                                                                                                                                                                                        |
+
 
 ## ai-superpower State Machine Quirk
 
@@ -761,7 +781,7 @@ Observed during superpower-clockless V2 on 2026-05-27: the documented `in_dev �
 
 ## ai-superpower API 诊断备忘 (2026-06-05)
 
-- **prod**: http://127.0.0.1:8000, **dev**: http://127.0.0.1:8100 (dev 已 down)
+- **prod**: [http://127.0.0.1:8000](http://127.0.0.1:8000), **dev**: [http://127.0.0.1:8100](http://127.0.0.1:8100) (dev 已 down)
 - **数据层 bug**: GET /api/proposals 和 POST /api/proposals 返回 `{}` 空对象 (HTTP 200)，数据实际存在 proposals.csv 但 API 序列化层返回空
 - **可用操作**: POST /api/proposals (仅接受 {title, owner, project_id}), PUT /api/proposals/{id}/fields (更新 acceptance/notes/deployment_url)
 - **workaround**: 批量操作用 Python urllib 脚本比 curl 更稳定
@@ -769,16 +789,20 @@ Observed during superpower-clockless V2 on 2026-05-27: the documented `in_dev �
 ## API status vs stage field divergence
 
 The ai-superpower API has **two separate status fields**:
+
 - `status`: Follows a strict state machine. Cannot transition arbitrarily (e.g., `intake → in_dev` is invalid).
 - `stage`: Can be set independently and often defaults to `in_dev`.
 
 When a cron job asks to set `Current Status: in_dev` but the API `status` field is stuck at `intake`:
+
 1. Check if `stage` is already `in_dev` — if so, the intent is satisfied functionally
 2. Do NOT force a state machine violation to make `status` equal `stage`
 3. The `status` field may require going through valid transitions (`intake → clarifying → prd_pending_confirmation → approved_for_dev → in_dev`)
 
 ## Related Skills
+
 - `ai-superpower-iteration-workflow` — ai-superpower own iteration workflow
 - `harness-desktop-iteration-workflow` — Desktop project iteration
 - `dbg-card-game-workflow` — DBG card game development
 - `pixel-pal-web-workflow` — PixelPal Web development
+
