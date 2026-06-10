@@ -110,6 +110,19 @@ TOOLS: Dict[str, Dict[str, Any]] = {
         "required": ["target_project_id", "source_project_name"],
         "help": "Merge all proposals from source project to target project",
     },
+    "scan_duplicate_projects": {
+        # scan_duplicate_projects(case_insensitive=True, api_key)
+        # Flat optional flag — no required positional args
+        "args": ["case_insensitive"],
+        "required": [],
+        "help": "Scan existing projects for duplicate names (legacy data dedup). Returns groups [{name, count, projects:[...]}]. --case-insensitive (default true) groups 'MyProj', 'myproj', 'MYPROJ' together.",
+    },
+    "merge_projects": {
+        # merge_projects(target_id, source_id, delete_source=True, api_key)
+        "args": ["target_id", "source_id", "delete_source"],
+        "required": ["target_id", "source_id"],
+        "help": "Merge source INTO target: move all proposals, optionally delete source. Use with scan_duplicate_projects output to dedupe legacy data.",
+    },
     "get_audit": {
         # Tool signature: page, page_size, entity, op, since
         "args": ["page", "page_size", "entity", "op", "since"],

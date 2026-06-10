@@ -152,10 +152,56 @@ When the request is to clone an existing GitHub repo and register as a proposal 
 
 ### Step 1b: Register New Proposal from Scratch
 
-1. Create project via `mcp_aisp.py` (MCP CLI):
-  ```bash
-  mcp_aisp.py create-project --name "ProjectName" --git-repo "https://github.com/owner/repo"
-  ```
+⚠️ **Duplicate project names** are a common pitfall. Before creating, check the project's name
+collision risk (legacy data from case-insensitive guards can return 409 even on first try).
+Use the scan workflow below if the project name looks common.
+
+**Check for existing project first (exact-name match, case-sensitive):**
+```bash
+# 1. Search by name
+mcp_aisp.py list-projects --search "ProjectName" --page-size 5
+
+# 2. If exact-name match found: REUSE the existing PRJ-ID
+#    The exact-match rule (v5.0.0+) auto-returns the existing project on create,
+#    so you can also just call create-project and read the response's "_existing" flag.
+
+# 3. If NO exact match but suspect legacy duplicates:
+mcp_aisp.py scan-duplicate-projects           # case-insensitive (default)
+mcp_aisp.py scan-duplicate-projects --case-insensitive false   # exact only
+```
+
+**Handle 3 scenarios:**
+
+| Result of `scan-duplicate-projects` | Action |
+|---|---|
+| No duplicates found | Safe to create new project |
+| Duplicates found (case-insensitive) | Present to boss: list each dup with PRJ-ID, ask which one is canonical |
+| Duplicates found (exact) | Reuse existing ID — `create-project` will return `_existing: true` automatically |
+
+**If boss says "merge X into Y":**
+```bash
+# Step A: backup-first recommendation (audit log is already there, but you can also export)
+mcp_aisp.py get-audit --entity project --since 2026-06-01   # check recent activity
+
+# Step B: merge
+mcp_aisp.py merge-projects --target-id PRJ-... --source-id PRJ-... --delete-source true
+
+# Step C: verify
+mcp_aisp.py get-project --project-id <source-id>    # should return "Project not found"
+mcp_aisp.py scan-duplicate-projects                # count should drop by 1
+```
+
+**Create project via `mcp_aisp.py` (MCP CLI):**
+```bash
+# First-try (no exact match):
+mcp_aisp.py create-project --name "ProjectName" --git-repo "https://github.com/owner/repo"
+
+# Force-create (bypasses case-insensitive duplicate guard; rarely needed):
+mcp_aisp.py create-project --name "ProjectName" --git-repo "..." --force
+
+# Exact-name hit response (auto-returns existing, no error):
+# {"_existing": true, "id": "PRJ-YYYYMMDD-XXX", "_note": "Returned existing..."}
+```
 2. Create proposal via `mcp_aisp.py` (ID auto-generated, no manual management)
 3. Create gh-pages branch for the proposal (if project has remote repo):
   ```bash
