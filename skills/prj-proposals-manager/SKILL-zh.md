@@ -150,15 +150,60 @@ Step 11: 部署（验收后交付）
 
 ### Step 1b: 从零开始注册新提案
 
-1. 通过 ai-superpower CLI 创建项目（如不存在）：
-  ```bash
-   mcp_aisp.py create-project --name "ProjectName" --git-repo "https://github.com/owner/repo"
-  ```
+⚠️ **重复项目名**是常见陷阱。创建前先评估名称冲突风险（旧 case-insensitive 守卫在第一次创建时可能返 409）。
+如果项目名比较常见，务必使用下面的扫描流程。
+
+**先用 ai-superpower 检查重名（精准匹配，区分大小写）：**
+```bash
+# 1. 按名称搜索
+mcp_aisp.py list-projects --search "ProjectName" --page-size 5
+
+# 2. 如果找到精准匹配：复用现有 PRJ-ID
+#    v5.0.0+ 的精准匹配规则会自动返回现有项目，所以你也可以直接
+#    调用 create-project 并读取响应中的 "_existing" 字段。
+
+# 3. 如果没精准匹配但怀疑有旧数据重复：
+mcp_aisp.py scan-duplicate-projects           # 默认 case-insensitive
+mcp_aisp.py scan-duplicate-projects --case-insensitive false   # 仅完全匹配
+```
+
+**3 种场景处理：**
+
+| `scan-duplicate-projects` 结果 | 行动 |
+|---|---|
+| 没有重复 | 安全创建新项目 |
+| 找到重复（case-insensitive） | 提交给 boss：列出每个重复的 PRJ-ID，问哪个是规范的 |
+| 找到重复（完全匹配） | 复用现有 ID —— `create-project` 会自动返回 `_existing: true` |
+
+**如果 boss 说"把 X 合并到 Y"：**
+```bash
+# 步骤 A：建议先备份（审计日志已存，但可另外导出）
+mcp_aisp.py get-audit --entity project --since 2026-06-01   # 查看最近活动
+
+# 步骤 B：合并
+mcp_aisp.py merge-projects --target-id PRJ-... --source-id PRJ-... --delete-source true
+
+# 步骤 C：验证
+mcp_aisp.py get-project --project-id <source-id>    # 应返回 "Project not found"
+mcp_aisp.py scan-duplicate-projects                # 重复组数应 -1
+```
+
+**通过 `mcp_aisp.py`（MCP CLI）创建项目：**
+```bash
+# 第一次尝试（无精准匹配）：
+mcp_aisp.py create-project --name "ProjectName" --git-repo "https://github.com/owner/repo"
+
+# 强制创建（绕过 case-insensitive 重复守卫；很少用）：
+mcp_aisp.py create-project --name "ProjectName" --git-repo "..." --force
+
+# 精准匹配命中的响应（自动返回现有，无错误）：
+# {"_existing": true, "id": "PRJ-YYYYMMDD-XXX", "_note": "Returned existing..."}
+```
 2. 通过 ai-superpower CLI 为项目生成下一个提案 ID（自动分配，无需手动管理）
 3. 为此提案创建 gh-pages 分支（如果项目有远程仓库）：
   ```bash
-   cd $superpower-proposals/<project-name>
-   git checkout -b gh-pages
+  cd $superpower-proposals/<project-name>
+  git checkout -b gh-pages
   ```
 4. 将 `$TEMPLATES_DIR/request-intake-template.md` 复制到提案目录
 5. 填写基本信息和原始需求
