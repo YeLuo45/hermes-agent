@@ -56,9 +56,9 @@ TOOLS: Dict[str, Dict[str, Any]] = {
     },
     "create_project": {
         # Flat args (the tool accepts name + git_repo + optionals, NOT a data dict)
-        "args": ["name", "git_repo", "prj_url", "local_path", "description"],
+        "args": ["name", "git_repo", "prj_url", "local_path", "description", "force"],
         "required": ["name"],
-        "help": "Create a new project. Returns 422 if duplicate (name+git_repo).",
+        "help": "Create a new project. force=True bypasses ALL duplicate checks. Exact-name match returns existing project (no error).",
     },
     "update_project": {
         # Takes (project_id, updates: dict). CLI: --project-id + individual fields
@@ -209,7 +209,12 @@ def build_parser() -> argparse.ArgumentParser:
         for arg in schema.get("args", []):
             flag = "--" + arg.replace("_", "-")
             required = arg in schema.get("required", [])
-            sp.add_argument(flag, required=required, help=f"{arg} value")
+            # Boolean flags (action="store_true") for fields named force/...
+            if arg in ("force",):
+                sp.add_argument(flag, action="store_true",
+                                help=f"set {arg}=True")
+            else:
+                sp.add_argument(flag, required=required, help=f"{arg} value")
 
     return parser
 

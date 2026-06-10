@@ -386,7 +386,13 @@ mcp_aisp.py update-proposal-status --proposal-id P-... --status clarifying
 mcp_aisp.py list-projects --search "ai-" --page-size 5
 mcp_aisp.py get-project --project-id PRJ-20260608-001
 mcp_aisp.py create-project --name "MyProj" --git-repo "https://github.com/o/r"
+#   ↑ If a project with EXACT same name exists, returns the existing project
+#     with `_existing: true` and `_note` explaining. No new ID assigned.
+#   ↑ Case-DIFFERENT name (e.g. "myproj" vs "MyProj") still triggers the
+#     case-insensitive duplicate guard → "Duplicate project" error.
+#   ↑ Use --force to bypass BOTH checks and always create new.
 mcp_aisp.py update-project --project-id PRJ-... --name "NewName" --description "..."
+mcp_aisp.py check-project-duplicate --name "X" --git-repo "https://..."
 
 # ─── Proposals ───────────────────────────────────────────────────────────
 mcp_aisp.py list-proposals --project-id PRJ-... --status in_dev
